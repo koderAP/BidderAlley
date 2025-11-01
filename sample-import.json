@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "name": "Drama Club",
+      "category": "Clubs",
+      "utility": 85,
+      "basePrice": 500
+    },
+    {
+      "name": "Music Society",
+      "category": "Clubs",
+      "utility": 90,
+      "basePrice": 550
+    },
+    {
+      "name": "North Wing Room",
+      "category": "Hostels",
+      "utility": 82,
+      "basePrice": 700
+    },
+    {
+      "name": "Coffee Date",
+      "category": "Dating Preference",
+      "utility": 75,
+      "basePrice": 300
+    },
+    {
+      "name": "Study Buddy",
+      "category": "Friend Type",
+      "utility": 88,
+      "basePrice": 400
+    }
+  ]
+}

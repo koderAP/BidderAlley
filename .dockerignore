@@ -1,0 +1,17 @@
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+QUICKSTART.md
+node_modules
+npm-debug.log
+.next
+.env*.local
+prisma/dev.db
+prisma/dev.db-journal
+.DS_Store
+*.log
+coverage
+.vscode
+.idea

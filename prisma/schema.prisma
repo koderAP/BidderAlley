@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id         String   @id @default(cuid())
+  name       String
+  category   String
+  utility    Int
+  basePrice  Int
+  soldPrice  Int?
+  soldTo     String?
+  status     String   @default("available")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  bidder Bidder? @relation(fields: [soldTo], references: [id])
+
+  @@index([category])
+  @@index([status])
+}
+
+model Bidder {
+  id              String     @id @default(cuid())
+  name            String     @unique
+  initialBudget   Int
+  remainingBudget Int        @default(0)
+  totalUtility    Int        @default(0)
+  isQualified     Boolean    @default(false)
+  hostelsCount    Int        @default(0)
+  clubsCount      Int        @default(0)
+  datingCount     Int        @default(0)
+  friendsCount    Int        @default(0)
+  totalItems      Int        @default(0)
+  
+  // Theme-specific utilities (for wildcard multipliers)
+  hostelsUtility  Int        @default(0)
+  clubsUtility    Int        @default(0)
+  datingUtility   Int        @default(0)
+  friendsUtility  Int        @default(0)
+  
+  // Current effective multipliers for each theme (product of all wildcard multipliers)
+  hostelsMultiplier Float    @default(1.0)
+  clubsMultiplier   Float    @default(1.0)
+  datingMultiplier  Float    @default(1.0)
+  friendsMultiplier Float    @default(1.0)
+  
+  wildcardsCount  Int        @default(0)
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  items     Item[]
+  wildcards Wildcard[]
+
+  @@index([name])
+  @@index([isQualified])
+  @@index([totalUtility])
+}
+
+model Wildcard {
+  id                String   @id @default(cuid())
+  name              String
+  price             Int
+  bidderId          String
+  
+  // Multipliers for each theme (1.0 = no effect, 2.0 = double utility, etc.)
+  hostelsMultiplier Float    @default(1.0)
+  clubsMultiplier   Float    @default(1.0)
+  datingMultiplier  Float    @default(1.0)
+  friendsMultiplier Float    @default(1.0)
+  
+  // Which theme does this wildcard count toward for qualification?
+  countsAsTheme     String?  // "Hostels", "Clubs", "Dating Preference", "Friend Type", or null
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  bidder Bidder @relation(fields: [bidderId], references: [id])
+
+  @@index([bidderId])
+}
