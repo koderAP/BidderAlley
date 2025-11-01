@@ -14,19 +14,21 @@ export default function AuctionDashboard() {
   const fetchData = async () => {
     try {
       setError(null);
-      const [itemsRes, biddersRes] = await Promise.all([
+      const [itemsRes, biddersRes, wildcardsRes] = await Promise.all([
         fetch('/api/items', { cache: 'no-store' }),
         fetch('/api/bidders', { cache: 'no-store' }),
+        fetch('/api/wildcards', { cache: 'no-store' }),
       ]);
 
-      if (!itemsRes.ok || !biddersRes.ok) {
+      if (!itemsRes.ok || !biddersRes.ok || !wildcardsRes.ok) {
         throw new Error('Failed to fetch data');
       }
 
       const items = await itemsRes.json();
       const bidders = await biddersRes.json();
+      const wildcards = await wildcardsRes.json();
 
-      setData({ items, bidders, categories });
+      setData({ items, bidders, categories, wildcards });
       setLoading(false);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -319,11 +321,16 @@ export default function AuctionDashboard() {
         
         return (
           <div key={category} className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-900">{category}</h2>
               <span className="text-sm text-gray-600">
                 {soldCategoryItems.length} / {categoryItems.length} sold
               </span>
+            </div>
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>ℹ️ Note:</strong> Utility values are only revealed for items that have been sold. Unsold items show "--" to maintain auction strategy.
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -396,6 +403,120 @@ export default function AuctionDashboard() {
           </div>
         );
       })}
+
+      {/* Wildcards Section */}
+      {data.wildcards && data.wildcards.length > 0 && (
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">🎴 Available Wildcards</h2>
+          <p className="text-gray-600 mb-6">
+            Wildcards provide multipliers to boost your utility scores and can help you qualify for themes. 
+            Multipliers are <strong>multiplicative</strong> - they stack by multiplication (e.g., 2.0× and 1.3× = 2.6×).
+          </p>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Wildcard Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price ($M)
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    🏠 Hostels
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    🎭 Clubs
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    💝 Dating
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    👥 Friends
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Owner
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {data.wildcards.map((wildcard) => {
+                  const owner = wildcard.bidderId 
+                    ? data.bidders.find(b => b.id === wildcard.bidderId) 
+                    : null;
+                  
+                  return (
+                    <tr key={wildcard.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{wildcard.name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900">${wildcard.price}M</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
+                          wildcard.hostelsMultiplier > 1 
+                            ? 'bg-indigo-100 text-indigo-800' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {wildcard.hostelsMultiplier}×
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
+                          wildcard.clubsMultiplier > 1 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {wildcard.clubsMultiplier}×
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
+                          wildcard.datingMultiplier > 1 
+                            ? 'bg-pink-100 text-pink-800' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {wildcard.datingMultiplier}×
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
+                          wildcard.friendsMultiplier > 1 
+                            ? 'bg-orange-100 text-orange-800' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {wildcard.friendsMultiplier}×
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {owner ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {owner.name}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500">Available</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">🎴 Wildcard Benefits:</h3>
+            <ul className="text-sm text-gray-700 space-y-1">
+              <li>• <strong>Multipliers:</strong> Boost your utility scores for specific themes (e.g., 2.0× doubles your utility)</li>
+              <li>• <strong>Auto-Qualification:</strong> Having a multiplier &gt; 1.0 automatically qualifies you for that theme</li>
+              <li>• <strong>Stacking:</strong> Multiple wildcards multiply together (2.0× and 1.3× = 2.6× total multiplier)</li>
+              <li>• <strong>Strategy:</strong> Use wildcards to boost weak themes or maximize strong ones</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -58,4 +58,5 @@ export interface AuctionData {
   items: Item[];
   bidders: Bidder[];
   categories: Category[];
+  wildcards?: Wildcard[];
 }
