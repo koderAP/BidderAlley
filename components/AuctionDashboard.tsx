@@ -239,7 +239,6 @@ export default function AuctionDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900">${bidder.remainingBudget}M</div>
-                        <div className="text-sm font-semibold text-gray-900">${bidder.remainingBudget}M</div>
                         <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                           <div 
                             className={`h-2 rounded-full ${
