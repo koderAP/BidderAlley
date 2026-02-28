@@ -12,31 +12,17 @@ const getCategoryKey = (category: string): string => {
   }
 };
 
-const CATEGORY_LIMITS: Record<string, { min: number; max: number }> = {
-  hostels: { min: 1, max: 3 },
-  clubs: { min: 2, max: 4 },
-  dating: { min: 1, max: 2 },
-  friends: { min: 2, max: 4 },
-};
-
-const TOTAL_ITEMS_LIMIT = { min: 7, max: 10 };
-
 const checkQualification = (bidder: any): boolean => {
-  const hostelsOk =
-    (bidder.hostelsCount >= CATEGORY_LIMITS.hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.hostels.max) ||
-    bidder.hostelsMultiplier > 1;
-  const clubsOk =
-    (bidder.clubsCount >= CATEGORY_LIMITS.clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.clubs.max) ||
-    bidder.clubsMultiplier > 1;
-  const datingOk =
-    (bidder.datingCount >= CATEGORY_LIMITS.dating.min && bidder.datingCount <= CATEGORY_LIMITS.dating.max) ||
-    bidder.datingMultiplier > 1;
-  const friendsOk =
-    (bidder.friendsCount >= CATEGORY_LIMITS.friends.min && bidder.friendsCount <= CATEGORY_LIMITS.friends.max) ||
-    bidder.friendsMultiplier > 1;
-  const totalOk = bidder.totalItems >= TOTAL_ITEMS_LIMIT.min && bidder.totalItems <= TOTAL_ITEMS_LIMIT.max;
+  // At least 1 card in at least 2 different categories
+  const categoriesWithCards = [
+    bidder.hostelsCount > 0 ? 1 : 0,
+    bidder.clubsCount > 0 ? 1 : 0,
+    bidder.datingCount > 0 ? 1 : 0,
+    bidder.friendsCount > 0 ? 1 : 0,
+  ].reduce((sum: number, v: number) => sum + v, 0);
 
-  return hostelsOk && clubsOk && datingOk && friendsOk && totalOk;
+  // At least 4 total cards
+  return categoriesWithCards >= 2 && bidder.totalItems >= 4;
 };
 
 export async function POST(request: Request) {
@@ -56,30 +42,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Item or Bidder not found' }, { status: 404 });
     }
 
-    if (bidder.totalItems >= TOTAL_ITEMS_LIMIT.max) {
-      return NextResponse.json(
-        { error: `Cannot purchase more items. Maximum of ${TOTAL_ITEMS_LIMIT.max} items reached.` },
-        { status: 400 }
-      );
-    }
-
     if (bidder.remainingBudget < soldPrice) {
       return NextResponse.json({ error: 'Insufficient budget' }, { status: 400 });
     }
 
     const catKey = getCategoryKey(item.category);
     const countField = `${catKey}Count`;
-    const currentCount = bidder[countField] as number;
-
-    if (currentCount >= CATEGORY_LIMITS[catKey].max) {
-      return NextResponse.json(
-        { error: `Maximum ${CATEGORY_LIMITS[catKey].max} items allowed in ${item.category} category` },
-        { status: 400 }
-      );
-    }
+    const utilityField = `${catKey}Utility`;
 
     // Update bidder counts and utility
-    const utilityField = `${catKey}Utility`;
     await query(
       `UPDATE "Bidder" SET
         "remainingBudget" = "remainingBudget" - $1,

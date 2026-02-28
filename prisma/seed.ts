@@ -43,92 +43,96 @@ async function main() {
       [`${b.playerId} - ${b.name}`]
     );
   }
-  console.log(`✅ Created ${bidderData.length} commanders`);
+  console.log(`✅ Created ${bidderData.length} players`);
 
   // Items by category
   const allItems = [
     // CATEGORY 1 — COMBAT ROLES
     ...[
-      { name: 'Infantry Commander', basePrice: 15, utility: 84 },
-      { name: 'Sniper Specialist', basePrice: 10, utility: 78 },
-      { name: 'Tank Commander', basePrice: 11, utility: 81 },
-      { name: 'Artillery Officer', basePrice: 12, utility: 82 },
-      { name: 'Combat Medic', basePrice: 10, utility: 80 },
-      { name: 'Demolitions Expert', basePrice: 5, utility: 79 },
-      { name: 'Paratrooper', basePrice: 8, utility: 89 },
-      { name: 'Naval Officer', basePrice: 11, utility: 87 },
-      { name: 'Air Force Pilot', basePrice: 10, utility: 82 },
-      { name: 'Special Forces Operator', basePrice: 13, utility: 88 },
-      { name: 'Communications Officer', basePrice: 9, utility: 76 },
-      { name: 'Intelligence Analyst', basePrice: 11, utility: 86 },
-      { name: 'Field Engineer', basePrice: 12, utility: 77 },
+      { name: 'Infantry Rifleman', basePrice: 5, utility: 78 },
+      { name: 'Section Commander', basePrice: 10, utility: 84 },
+      { name: 'Platoon Leader', basePrice: 14, utility: 88 },
+      { name: 'Company Commander', basePrice: 18, utility: 92 },
+      { name: 'Sniper Specialist', basePrice: 20, utility: 93 },
+      { name: 'Machine Gun Operator', basePrice: 11, utility: 85 },
+      { name: 'Combat Medic', basePrice: 16, utility: 90 },
+      { name: 'Field Engineer', basePrice: 12, utility: 86 },
+      { name: 'Signals Operator', basePrice: 7, utility: 80 },
+      { name: 'Reconnaissance Scout', basePrice: 15, utility: 89 },
+      { name: 'Paratrooper', basePrice: 17, utility: 91 },
+      { name: 'Armoured Corps Officer', basePrice: 16, utility: 90 },
+      { name: 'Artillery Fire Controller', basePrice: 13, utility: 87 },
+      { name: 'Helicopter Pilot', basePrice: 19, utility: 92 },
+      { name: 'Fighter Pilot', basePrice: 23, utility: 95 },
+      { name: 'Naval Warfare Officer', basePrice: 18, utility: 91 },
+      { name: 'Special Forces Operator', basePrice: 25, utility: 96 },
+      { name: 'Explosive Ordnance Specialist', basePrice: 14, utility: 88 },
     ].map(i => ({ ...i, category: 'Combat Roles' })),
 
     // CATEGORY 2 — STRATEGIC ASSETS & EQUIPMENT
     ...[
-      { name: 'Stealth Drone', basePrice: 10, utility: 85 },
-      { name: 'EMP Device', basePrice: 10, utility: 82 },
-      { name: 'Tactical Shield', basePrice: 5, utility: 78 },
-      { name: 'Night Vision Suite', basePrice: 5, utility: 75 },
-      { name: 'Cyber Warfare Kit', basePrice: 5, utility: 75 },
-      { name: 'Satellite Uplink', basePrice: 10, utility: 86 },
-      { name: 'Ballistic Armor', basePrice: 5, utility: 79 },
-      { name: 'Laser Designator', basePrice: 15, utility: 89 },
-      { name: 'Radar Jammer', basePrice: 10, utility: 85 },
-      { name: 'Nuclear Submarine', basePrice: 15, utility: 90 },
-      { name: 'Attack Helicopter', basePrice: 15, utility: 91 },
-      { name: 'Cruise Missile', basePrice: 10, utility: 85 },
-      { name: 'Anti-Aircraft System', basePrice: 23, utility: 85 },
-      { name: 'Armored Transport', basePrice: 25, utility: 82 },
-      { name: 'Mine Sweeper', basePrice: 23, utility: 78 },
-      { name: 'Command Vehicle', basePrice: 23, utility: 86 },
-      { name: 'Surveillance Satellite', basePrice: 8, utility: 74 },
-      { name: 'Stealth Fighter', basePrice: 13, utility: 77 },
-      { name: 'Guided Missile System', basePrice: 15, utility: 78 },
-      { name: 'Electronic Countermeasures', basePrice: 16, utility: 88 },
+      { name: 'Assault Rifle System', basePrice: 8, utility: 80 },
+      { name: 'Sniper Weapon System', basePrice: 15, utility: 88 },
+      { name: 'Light Machine Gun', basePrice: 11, utility: 84 },
+      { name: 'Advanced Body Armour', basePrice: 12, utility: 85 },
+      { name: 'Night Vision System', basePrice: 16, utility: 90 },
+      { name: 'Tactical Drone', basePrice: 18, utility: 91 },
+      { name: 'Surveillance Radar', basePrice: 13, utility: 87 },
+      { name: 'Battle Tank Platform', basePrice: 24, utility: 95 },
+      { name: 'Infantry Fighting Vehicle', basePrice: 15, utility: 89 },
+      { name: 'Attack Helicopter', basePrice: 22, utility: 94 },
+      { name: 'Multirole Fighter Jet', basePrice: 26, utility: 97 },
+      { name: 'Satellite Recon Support', basePrice: 20, utility: 93 },
+      { name: 'Secure Communications Suite', basePrice: 12, utility: 86 },
+      { name: 'Field Medical Unit', basePrice: 14, utility: 88 },
+      { name: 'Mobile Command Vehicle', basePrice: 17, utility: 90 },
+      { name: 'Electronic Warfare Suite', basePrice: 19, utility: 92 },
+      { name: 'Precision Guided Munition', basePrice: 23, utility: 94 },
+      { name: 'Logistics Supply Convoy', basePrice: 10, utility: 83 },
     ].map(i => ({ ...i, category: 'Strategic Assets & Equipment' })),
 
     // CATEGORY 3 — MISSION ENVIRONMENTS
     ...[
-      { name: 'Arctic Tundra', basePrice: 15, utility: 88 },
-      { name: 'Desert Wasteland', basePrice: 10, utility: 81 },
-      { name: 'Urban Warzone', basePrice: 10, utility: 82 },
-      { name: 'Dense Jungle', basePrice: 5, utility: 72 },
-      { name: 'Mountain Pass', basePrice: 5, utility: 75 },
-      { name: 'Underground Bunker', basePrice: 5, utility: 70 },
-      { name: 'Open Sea', basePrice: 15, utility: 89 },
-      { name: 'Volcanic Island', basePrice: 10, utility: 78 },
-      { name: 'Nuclear Fallout Zone', basePrice: 7, utility: 79 },
-      { name: 'Swamp Delta', basePrice: 5, utility: 74 },
-      { name: 'High Altitude Base', basePrice: 15, utility: 90 },
-      { name: 'Coastal Fortress', basePrice: 10, utility: 81 },
-      { name: 'Abandoned City', basePrice: 15, utility: 91 },
-      { name: 'Space Station', basePrice: 10, utility: 82 },
-      { name: 'Deep Forest Camp', basePrice: 10, utility: 78 },
+      { name: 'Desert Warfare Theatre', basePrice: 12, utility: 86 },
+      { name: 'Mountain Warfare Zone', basePrice: 18, utility: 91 },
+      { name: 'Urban Combat Sector', basePrice: 17, utility: 90 },
+      { name: 'Jungle Operations Region', basePrice: 15, utility: 88 },
+      { name: 'Arctic Operations Zone', basePrice: 16, utility: 89 },
+      { name: 'Maritime Operations Area', basePrice: 14, utility: 87 },
+      { name: 'High Altitude Sector', basePrice: 19, utility: 92 },
+      { name: 'Night Operations Environment', basePrice: 20, utility: 93 },
+      { name: 'Electronic Warfare Zone', basePrice: 22, utility: 94 },
+      { name: 'Contested Border Region', basePrice: 17, utility: 90 },
+      { name: 'Forward Operating Area', basePrice: 12, utility: 85 },
+      { name: 'Deep Strike Theatre', basePrice: 24, utility: 95 },
+      { name: 'Amphibious Landing Zone', basePrice: 16, utility: 89 },
+      { name: 'Air Superiority Sector', basePrice: 22, utility: 94 },
+      { name: 'Integrated Battle Space', basePrice: 25, utility: 96 },
+      { name: 'Defensive Perimeter Zone', basePrice: 11, utility: 84 },
+      { name: 'Rapid Deployment Corridor', basePrice: 15, utility: 88 },
+      { name: 'Strategic High Ground', basePrice: 26, utility: 97 },
     ].map(i => ({ ...i, category: 'Mission Environments' })),
 
     // CATEGORY 4 — SPECIAL OPERATIONS & STRATEGIC ACTIONS
     ...[
-      { name: 'Hostage Rescue', basePrice: 5, utility: 74 },
-      { name: 'Assassination Mission', basePrice: 5, utility: 78 },
-      { name: 'Supply Line Sabotage', basePrice: 10, utility: 84 },
-      { name: 'Chemical Warfare Defense', basePrice: 10, utility: 85 },
-      { name: 'Cyber Attack', basePrice: 10, utility: 87 },
-      { name: 'Diplomatic Espionage', basePrice: 15, utility: 88 },
-      { name: 'Recon Mission', basePrice: 10, utility: 84 },
-      { name: 'Deep Cover Infiltration', basePrice: 15, utility: 90 },
-      { name: 'Diversion Operation', basePrice: 10, utility: 81 },
-      { name: 'Black Market Deal', basePrice: 10, utility: 82 },
-      { name: 'Propaganda Campaign', basePrice: 10, utility: 83 },
-      { name: 'Counter Intelligence', basePrice: 5, utility: 79 },
-      { name: 'Prisoner Extraction', basePrice: 5, utility: 78 },
-      { name: 'Air Strike Coordination', basePrice: 10, utility: 86 },
-      { name: 'Bioweapon Neutralization', basePrice: 5, utility: 76 },
-      { name: 'Forward Operating Base', basePrice: 5, utility: 75 },
-      { name: 'Night Raid', basePrice: 15, utility: 91 },
-      { name: 'Siege Warfare', basePrice: 23, utility: 94 },
-      { name: 'Arms Dealing', basePrice: 5, utility: 77 },
-      { name: 'Scorched Earth Protocol', basePrice: 5, utility: 79 },
+      { name: 'Precision Air Strike', basePrice: 25, utility: 96 },
+      { name: 'Covert Infiltration Mission', basePrice: 23, utility: 94 },
+      { name: 'Special Forces Raid', basePrice: 24, utility: 95 },
+      { name: 'Strategic Recon Mission', basePrice: 17, utility: 90 },
+      { name: 'Electronic Disruption Operation', basePrice: 19, utility: 92 },
+      { name: 'Rapid Reinforcement Deployment', basePrice: 18, utility: 91 },
+      { name: 'Forward Base Establishment', basePrice: 14, utility: 88 },
+      { name: 'Amphibious Assault', basePrice: 21, utility: 93 },
+      { name: 'Defensive Fortification', basePrice: 12, utility: 85 },
+      { name: 'Convoy Protection Detail', basePrice: 11, utility: 84 },
+      { name: 'Search and Rescue Mission', basePrice: 16, utility: 89 },
+      { name: 'Combat Air Patrol', basePrice: 17, utility: 90 },
+      { name: 'Missile Defence Activation', basePrice: 20, utility: 92 },
+      { name: 'Joint Forces Coordination', basePrice: 22, utility: 94 },
+      { name: 'Battlefield Evacuation', basePrice: 14, utility: 88 },
+      { name: 'Strategic Deterrence Posture', basePrice: 21, utility: 93 },
+      { name: 'Night Operations Deployment', basePrice: 18, utility: 91 },
+      { name: 'Emergency Response Mobilisation', basePrice: 13, utility: 87 },
     ].map(i => ({ ...i, category: 'Special Operations & Strategic Actions' })),
   ];
 
@@ -139,11 +143,11 @@ async function main() {
       [item.name, item.category, item.utility, item.basePrice]
     );
   }
-  console.log(`✅ Created ${allItems.length} tactical assets`);
+  console.log(`✅ Created ${allItems.length} items`);
 
   console.log('🎉 Seed completed successfully!');
-  console.log(`📊 Total: ${bidderData.length} commanders, ${allItems.length} assets`);
-  console.log(`💰 Budget per commander: $200M`);
+  console.log(`📊 Total: ${bidderData.length} players, ${allItems.length} items`);
+  console.log(`💰 Budget per player: $200M`);
 }
 
 main()

@@ -2,15 +2,6 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { calculateTotalUtility } from '@/lib/wildcard-utils';
 
-const CATEGORY_LIMITS: Record<string, { min: number; max: number }> = {
-  hostels: { min: 1, max: 3 },
-  clubs: { min: 2, max: 4 },
-  dating: { min: 1, max: 2 },
-  friends: { min: 2, max: 4 },
-};
-
-const TOTAL_ITEMS_LIMIT = { min: 7, max: 10 };
-
 function getCategoryKey(category: string): string {
   if (category === 'Combat Roles') return 'hostels';
   if (category === 'Strategic Assets & Equipment') return 'clubs';
@@ -19,21 +10,14 @@ function getCategoryKey(category: string): string {
 }
 
 function checkQualification(bidder: any): boolean {
-  const hostelsOk =
-    (bidder.hostelsCount >= CATEGORY_LIMITS.hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.hostels.max) ||
-    bidder.hostelsMultiplier > 1;
-  const clubsOk =
-    (bidder.clubsCount >= CATEGORY_LIMITS.clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.clubs.max) ||
-    bidder.clubsMultiplier > 1;
-  const datingOk =
-    (bidder.datingCount >= CATEGORY_LIMITS.dating.min && bidder.datingCount <= CATEGORY_LIMITS.dating.max) ||
-    bidder.datingMultiplier > 1;
-  const friendsOk =
-    (bidder.friendsCount >= CATEGORY_LIMITS.friends.min && bidder.friendsCount <= CATEGORY_LIMITS.friends.max) ||
-    bidder.friendsMultiplier > 1;
-  const totalOk = bidder.totalItems >= TOTAL_ITEMS_LIMIT.min && bidder.totalItems <= TOTAL_ITEMS_LIMIT.max;
+  const categoriesWithCards = [
+    bidder.hostelsCount > 0 ? 1 : 0,
+    bidder.clubsCount > 0 ? 1 : 0,
+    bidder.datingCount > 0 ? 1 : 0,
+    bidder.friendsCount > 0 ? 1 : 0,
+  ].reduce((sum: number, v: number) => sum + v, 0);
 
-  return hostelsOk && clubsOk && datingOk && friendsOk && totalOk;
+  return categoriesWithCards >= 2 && bidder.totalItems >= 4;
 }
 
 // GET all wildcards
@@ -57,33 +41,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      name,
-      price,
-      bidderId,
-      hostelsMultiplier = 1.0,
-      clubsMultiplier = 1.0,
-      datingMultiplier = 1.0,
-      friendsMultiplier = 1.0,
+      name, price, bidderId,
+      hostelsMultiplier = 1.0, clubsMultiplier = 1.0, datingMultiplier = 1.0, friendsMultiplier = 1.0,
       countsAsTheme,
     } = body;
 
     if (!name || !bidderId || price === undefined) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, bidderId, price' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields: name, bidderId, price' }, { status: 400 });
     }
 
     const bidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidderId]);
     const bidder = bidderRes.rows[0];
 
-    if (!bidder) {
-      return NextResponse.json({ error: 'Bidder not found' }, { status: 404 });
-    }
-
-    if (bidder.remainingBudget < price) {
-      return NextResponse.json({ error: 'Insufficient budget' }, { status: 400 });
-    }
+    if (!bidder) return NextResponse.json({ error: 'Bidder not found' }, { status: 404 });
+    if (bidder.remainingBudget < price) return NextResponse.json({ error: 'Insufficient budget' }, { status: 400 });
 
     // Create the wildcard
     await query(
@@ -92,16 +63,8 @@ export async function POST(request: Request) {
       [name, price, bidderId, hostelsMultiplier, clubsMultiplier, datingMultiplier, friendsMultiplier, countsAsTheme || null]
     );
 
-    // Build update for bidder
     let extraUpdates = '';
-    const params: any[] = [
-      price,
-      hostelsMultiplier,
-      clubsMultiplier,
-      datingMultiplier,
-      friendsMultiplier,
-      bidderId,
-    ];
+    const params: any[] = [price, hostelsMultiplier, clubsMultiplier, datingMultiplier, friendsMultiplier, bidderId];
 
     if (countsAsTheme) {
       const catKey = getCategoryKey(countsAsTheme);
@@ -122,11 +85,9 @@ export async function POST(request: Request) {
       params
     );
 
-    // Recalculate total utility
     const newTotalUtility = await calculateTotalUtility(bidderId);
     await query('UPDATE "Bidder" SET "totalUtility" = $1, "updatedAt" = NOW() WHERE id = $2', [newTotalUtility, bidderId]);
 
-    // Check qualification
     const updatedBidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidderId]);
     const updatedBidder = updatedBidderRes.rows[0];
     const isQualified = checkQualification(updatedBidder);
@@ -141,37 +102,29 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE - Remove wildcard purchase
+// DELETE - Remove wildcard
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const wildcardId = searchParams.get('wildcardId');
 
-    if (!wildcardId) {
-      return NextResponse.json({ error: 'Wildcard ID is required' }, { status: 400 });
-    }
+    if (!wildcardId) return NextResponse.json({ error: 'Wildcard ID is required' }, { status: 400 });
 
     const wcRes = await query('SELECT * FROM "Wildcard" WHERE id = $1', [wildcardId]);
     const wildcard = wcRes.rows[0];
-
-    if (!wildcard) {
-      return NextResponse.json({ error: 'Wildcard not found' }, { status: 404 });
-    }
+    if (!wildcard) return NextResponse.json({ error: 'Wildcard not found' }, { status: 404 });
 
     const bidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [wildcard.bidderId]);
     const bidder = bidderRes.rows[0];
 
-    // Build update
     let extraUpdates = '';
     if (wildcard.countsAsTheme) {
       const catKey = getCategoryKey(wildcard.countsAsTheme);
       extraUpdates = `, "totalItems" = GREATEST("totalItems" - 1, 0), "${catKey}Count" = GREATEST("${catKey}Count" - 1, 0)`;
     }
 
-    // Delete the wildcard first
     await query('DELETE FROM "Wildcard" WHERE id = $1', [wildcardId]);
 
-    // Update bidder
     await query(
       `UPDATE "Bidder" SET
         "remainingBudget" = "remainingBudget" + $1,
@@ -186,11 +139,9 @@ export async function DELETE(request: Request) {
       [wildcard.price, wildcard.hostelsMultiplier, wildcard.clubsMultiplier, wildcard.datingMultiplier, wildcard.friendsMultiplier, bidder.id]
     );
 
-    // Recalculate total utility
     const newTotalUtility = await calculateTotalUtility(bidder.id);
     await query('UPDATE "Bidder" SET "totalUtility" = $1, "updatedAt" = NOW() WHERE id = $2', [newTotalUtility, bidder.id]);
 
-    // Check qualification
     const updatedBidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidder.id]);
     const updatedBidder = updatedBidderRes.rows[0];
     const isQualified = checkQualification(updatedBidder);

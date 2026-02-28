@@ -238,8 +238,8 @@ export default function AuctionDashboard() {
                         <div className="w-full bg-[#21262d] rounded-full h-2 mt-1">
                           <div
                             className={`h-2 rounded-full ${budgetPercentage > 80 ? 'bg-red-500' :
-                                budgetPercentage > 50 ? 'bg-amber-500' :
-                                  'bg-green-500'
+                              budgetPercentage > 50 ? 'bg-amber-500' :
+                                'bg-green-500'
                               }`}
                             style={{ width: `${100 - budgetPercentage}%` }}
                           ></div>
@@ -273,16 +273,8 @@ export default function AuctionDashboard() {
                               ✗ NOT QUALIFIED
                             </span>
                             <div className="text-xs text-gray-500 mt-1">
-                              {bidder.hostelsCount < 1 && bidder.hostelsMultiplier <= 1 && <div>Need: 1+ Combat Roles</div>}
-                              {bidder.hostelsCount > 3 && <div>Too many Combat Roles (max 3)</div>}
-                              {bidder.clubsCount < 2 && bidder.clubsMultiplier <= 1 && <div>Need: 2+ Strategic Assets</div>}
-                              {bidder.clubsCount > 4 && <div>Too many Strategic Assets (max 4)</div>}
-                              {bidder.datingCount < 1 && bidder.datingMultiplier <= 1 && <div>Need: 1+ Mission Env</div>}
-                              {bidder.datingCount > 2 && <div>Too many Mission Env (max 2)</div>}
-                              {bidder.friendsCount < 2 && bidder.friendsMultiplier <= 1 && <div>Need: 2+ Special Ops</div>}
-                              {bidder.friendsCount > 4 && <div>Too many Special Ops (max 4)</div>}
-                              {bidder.totalItems < 7 && <div>Need: 7+ total assets</div>}
-                              {bidder.totalItems > 10 && <div>Too many assets (max 10)</div>}
+                              {[bidder.hostelsCount > 0, bidder.clubsCount > 0, bidder.datingCount > 0, bidder.friendsCount > 0].filter(Boolean).length < 2 && <div>Need: cards in 2+ categories</div>}
+                              {bidder.totalItems < 4 && <div>Need: {4 - bidder.totalItems} more cards (min 4)</div>}
                             </div>
                           </div>
                         )}
@@ -297,12 +289,9 @@ export default function AuctionDashboard() {
         {/* Qualification Requirements */}
         <div className="mt-6 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
           <h3 className="text-sm font-semibold text-green-400 mb-2 font-mono">📋 QUALIFICATION REQUIREMENTS:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-400 font-mono">
-            <div>• <span className="font-medium text-red-400">Combat Roles:</span> 1-3 assets</div>
-            <div>• <span className="font-medium text-amber-400">Strategic Assets:</span> 2-4 assets</div>
-            <div>• <span className="font-medium text-emerald-400">Mission Environments:</span> 1-2 assets</div>
-            <div>• <span className="font-medium text-violet-400">Special Operations:</span> 2-4 assets</div>
-            <div className="md:col-span-2">• <span className="font-medium text-gray-300">Total Assets:</span> 7-10 assets overall</div>
+          <div className="grid grid-cols-1 gap-2 text-sm text-gray-400 font-mono">
+            <div>• At least <span className="font-medium text-green-400">1 card</span> in at least <span className="font-medium text-green-400">2 different categories</span></div>
+            <div>• Minimum <span className="font-medium text-green-400">4 total cards</span> overall</div>
           </div>
         </div>
       </div>
@@ -361,8 +350,8 @@ export default function AuctionDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'sold'
-                              ? 'bg-green-900/50 text-green-300 border border-green-700/30'
-                              : 'bg-amber-900/50 text-amber-300 border border-amber-700/30'
+                            ? 'bg-green-900/50 text-green-300 border border-green-700/30'
+                            : 'bg-amber-900/50 text-amber-300 border border-amber-700/30'
                             }`}>
                             {item.status === 'sold' ? '✓ Acquired' : '◯ Available'}
                           </span>
@@ -425,32 +414,32 @@ export default function AuctionDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${wildcard.hostelsMultiplier > 1
-                            ? 'bg-red-900/50 text-red-300 border border-red-700/30'
-                            : 'bg-[#21262d] text-gray-500'
+                          ? 'bg-red-900/50 text-red-300 border border-red-700/30'
+                          : 'bg-[#21262d] text-gray-500'
                           }`}>
                           {wildcard.hostelsMultiplier}×
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${wildcard.clubsMultiplier > 1
-                            ? 'bg-amber-900/50 text-amber-300 border border-amber-700/30'
-                            : 'bg-[#21262d] text-gray-500'
+                          ? 'bg-amber-900/50 text-amber-300 border border-amber-700/30'
+                          : 'bg-[#21262d] text-gray-500'
                           }`}>
                           {wildcard.clubsMultiplier}×
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${wildcard.datingMultiplier > 1
-                            ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/30'
-                            : 'bg-[#21262d] text-gray-500'
+                          ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/30'
+                          : 'bg-[#21262d] text-gray-500'
                           }`}>
                           {wildcard.datingMultiplier}×
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${wildcard.friendsMultiplier > 1
-                            ? 'bg-violet-900/50 text-violet-300 border border-violet-700/30'
-                            : 'bg-[#21262d] text-gray-500'
+                          ? 'bg-violet-900/50 text-violet-300 border border-violet-700/30'
+                          : 'bg-[#21262d] text-gray-500'
                           }`}>
                           {wildcard.friendsMultiplier}×
                         </span>
