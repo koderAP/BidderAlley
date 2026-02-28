@@ -1,50 +1,39 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { query } from '@/lib/db';
 import { calculateTotalUtility } from '@/lib/wildcard-utils';
 
-// Category mapping for purchase limits
-const getCategoryKey = (category: string): keyof typeof CATEGORY_LIMITS => {
+const getCategoryKey = (category: string): string => {
   switch (category) {
-    case 'Combat Roles':
-      return 'Hostels';
-    case 'Strategic Assets & Equipment':
-      return 'Clubs';
-    case 'Mission Environments':
-      return 'Dating';
-    case 'Special Operations & Strategic Actions':
-      return 'Friends';
-    default:
-      return 'Hostels';
+    case 'Combat Roles': return 'hostels';
+    case 'Strategic Assets & Equipment': return 'clubs';
+    case 'Mission Environments': return 'dating';
+    case 'Special Operations & Strategic Actions': return 'friends';
+    default: return 'hostels';
   }
 };
 
-const CATEGORY_LIMITS = {
-  Hostels: { min: 1, max: 3 },
-  Clubs: { min: 2, max: 4 },
-  Dating: { min: 1, max: 2 },
-  Friends: { min: 2, max: 4 },
+const CATEGORY_LIMITS: Record<string, { min: number; max: number }> = {
+  hostels: { min: 1, max: 3 },
+  clubs: { min: 2, max: 4 },
+  dating: { min: 1, max: 2 },
+  friends: { min: 2, max: 4 },
 };
 
 const TOTAL_ITEMS_LIMIT = { min: 7, max: 10 };
 
-// Check if bidder qualifies
 const checkQualification = (bidder: any): boolean => {
   const hostelsOk =
-    (bidder.hostelsCount >= CATEGORY_LIMITS.Hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.Hostels.max) ||
+    (bidder.hostelsCount >= CATEGORY_LIMITS.hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.hostels.max) ||
     bidder.hostelsMultiplier > 1;
-
   const clubsOk =
-    (bidder.clubsCount >= CATEGORY_LIMITS.Clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.Clubs.max) ||
+    (bidder.clubsCount >= CATEGORY_LIMITS.clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.clubs.max) ||
     bidder.clubsMultiplier > 1;
-
   const datingOk =
-    (bidder.datingCount >= CATEGORY_LIMITS.Dating.min && bidder.datingCount <= CATEGORY_LIMITS.Dating.max) ||
+    (bidder.datingCount >= CATEGORY_LIMITS.dating.min && bidder.datingCount <= CATEGORY_LIMITS.dating.max) ||
     bidder.datingMultiplier > 1;
-
   const friendsOk =
-    (bidder.friendsCount >= CATEGORY_LIMITS.Friends.min && bidder.friendsCount <= CATEGORY_LIMITS.Friends.max) ||
+    (bidder.friendsCount >= CATEGORY_LIMITS.friends.min && bidder.friendsCount <= CATEGORY_LIMITS.friends.max) ||
     bidder.friendsMultiplier > 1;
-
   const totalOk = bidder.totalItems >= TOTAL_ITEMS_LIMIT.min && bidder.totalItems <= TOTAL_ITEMS_LIMIT.max;
 
   return hostelsOk && clubsOk && datingOk && friendsOk && totalOk;
@@ -55,20 +44,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { itemId, bidderId, soldPrice } = body;
 
-    // Get the item and bidder with current counts
-    const [item, bidder] = await Promise.all([
-      prisma.item.findUnique({ where: { id: itemId } }),
-      prisma.bidder.findUnique({
-        where: { id: bidderId },
-        include: { items: true }
-      }),
+    const [itemRes, bidderRes] = await Promise.all([
+      query('SELECT * FROM "Item" WHERE id = $1', [itemId]),
+      query('SELECT * FROM "Bidder" WHERE id = $1', [bidderId]),
     ]);
+
+    const item = itemRes.rows[0];
+    const bidder = bidderRes.rows[0];
 
     if (!item || !bidder) {
       return NextResponse.json({ error: 'Item or Bidder not found' }, { status: 404 });
     }
 
-    // Check if bidder has reached max total items
     if (bidder.totalItems >= TOTAL_ITEMS_LIMIT.max) {
       return NextResponse.json(
         { error: `Cannot purchase more items. Maximum of ${TOTAL_ITEMS_LIMIT.max} items reached.` },
@@ -76,83 +63,51 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check budget
     if (bidder.remainingBudget < soldPrice) {
-      return NextResponse.json(
-        { error: 'Insufficient budget' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Insufficient budget' }, { status: 400 });
     }
 
-    // Check category limits
-    const categoryKey = getCategoryKey(item.category);
-    const countField = `${categoryKey.toLowerCase()}Count` as keyof typeof bidder;
+    const catKey = getCategoryKey(item.category);
+    const countField = `${catKey}Count`;
     const currentCount = bidder[countField] as number;
 
-    if (currentCount >= CATEGORY_LIMITS[categoryKey].max) {
+    if (currentCount >= CATEGORY_LIMITS[catKey].max) {
       return NextResponse.json(
-        { error: `Maximum ${CATEGORY_LIMITS[categoryKey].max} items allowed in ${item.category} category` },
+        { error: `Maximum ${CATEGORY_LIMITS[catKey].max} items allowed in ${item.category} category` },
         { status: 400 }
       );
     }
 
-    // Calculate new values
-    const newRemainingBudget = bidder.remainingBudget - soldPrice;
-    const newTotalItems = bidder.totalItems + 1;
+    // Update bidder counts and utility
+    const utilityField = `${catKey}Utility`;
+    await query(
+      `UPDATE "Bidder" SET
+        "remainingBudget" = "remainingBudget" - $1,
+        "totalItems" = "totalItems" + 1,
+        "${countField}" = "${countField}" + 1,
+        "${utilityField}" = "${utilityField}" + $2,
+        "updatedAt" = NOW()
+       WHERE id = $3`,
+      [soldPrice, item.utility, bidderId]
+    );
 
-    const updateData: any = {
-      remainingBudget: newRemainingBudget,
-      totalItems: newTotalItems,
-    };
-
-    // Update category count AND theme-specific utility
-    if (categoryKey === 'Hostels') {
-      updateData.hostelsCount = bidder.hostelsCount + 1;
-      updateData.hostelsUtility = bidder.hostelsUtility + item.utility;
-    } else if (categoryKey === 'Clubs') {
-      updateData.clubsCount = bidder.clubsCount + 1;
-      updateData.clubsUtility = bidder.clubsUtility + item.utility;
-    } else if (categoryKey === 'Dating') {
-      updateData.datingCount = bidder.datingCount + 1;
-      updateData.datingUtility = bidder.datingUtility + item.utility;
-    } else if (categoryKey === 'Friends') {
-      updateData.friendsCount = bidder.friendsCount + 1;
-      updateData.friendsUtility = bidder.friendsUtility + item.utility;
-    }
-
-    // Update bidder with new counts (theme utilities updated above)
-    await prisma.bidder.update({
-      where: { id: bidderId },
-      data: updateData,
-    });
-
-    // Recalculate total utility based on theme utilities × wildcard multipliers
+    // Recalculate total utility
     const newTotalUtility = await calculateTotalUtility(bidderId);
+    await query('UPDATE "Bidder" SET "totalUtility" = $1, "updatedAt" = NOW() WHERE id = $2', [newTotalUtility, bidderId]);
 
-    // Update with the calculated total utility
-    const updatedBidder = await prisma.bidder.update({
-      where: { id: bidderId },
-      data: { totalUtility: newTotalUtility },
-    });
-
-    // Check qualification status
+    // Check qualification
+    const updatedBidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidderId]);
+    const updatedBidder = updatedBidderRes.rows[0];
     const isQualified = checkQualification(updatedBidder);
     if (updatedBidder.isQualified !== isQualified) {
-      await prisma.bidder.update({
-        where: { id: bidderId },
-        data: { isQualified },
-      });
+      await query('UPDATE "Bidder" SET "isQualified" = $1, "updatedAt" = NOW() WHERE id = $2', [isQualified, bidderId]);
     }
 
     // Update the item
-    await prisma.item.update({
-      where: { id: itemId },
-      data: {
-        soldTo: bidderId,
-        soldPrice: soldPrice,
-        status: 'sold',
-      },
-    });
+    await query(
+      'UPDATE "Item" SET "soldTo" = $1, "soldPrice" = $2, status = $3, "updatedAt" = NOW() WHERE id = $4',
+      [bidderId, soldPrice, 'sold', itemId]
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -170,76 +125,53 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
     }
 
-    // Get the item with bidder info
-    const item = await prisma.item.findUnique({
-      where: { id: itemId },
-      include: { bidder: true },
-    });
+    const itemRes = await query('SELECT * FROM "Item" WHERE id = $1', [itemId]);
+    const item = itemRes.rows[0];
 
-    if (!item || !item.soldTo || !item.bidder) {
+    if (!item || !item.soldTo) {
       return NextResponse.json({ error: 'Item not found or not sold' }, { status: 404 });
     }
 
-    const bidder = item.bidder;
-    const categoryKey = getCategoryKey(item.category);
+    const bidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [item.soldTo]);
+    const bidder = bidderRes.rows[0];
 
-    // Calculate reversed values
-    const newRemainingBudget = bidder.remainingBudget + (item.soldPrice || 0);
-    const newTotalItems = bidder.totalItems - 1;
-
-    const updateData: any = {
-      remainingBudget: newRemainingBudget,
-      totalItems: newTotalItems,
-    };
-
-    // Update category count AND theme-specific utility
-    if (categoryKey === 'Hostels') {
-      updateData.hostelsCount = Math.max(0, bidder.hostelsCount - 1);
-      updateData.hostelsUtility = Math.max(0, bidder.hostelsUtility - item.utility);
-    } else if (categoryKey === 'Clubs') {
-      updateData.clubsCount = Math.max(0, bidder.clubsCount - 1);
-      updateData.clubsUtility = Math.max(0, bidder.clubsUtility - item.utility);
-    } else if (categoryKey === 'Dating') {
-      updateData.datingCount = Math.max(0, bidder.datingCount - 1);
-      updateData.datingUtility = Math.max(0, bidder.datingUtility - item.utility);
-    } else if (categoryKey === 'Friends') {
-      updateData.friendsCount = Math.max(0, bidder.friendsCount - 1);
-      updateData.friendsUtility = Math.max(0, bidder.friendsUtility - item.utility);
+    if (!bidder) {
+      return NextResponse.json({ error: 'Bidder not found' }, { status: 404 });
     }
 
-    // Update bidder (theme utilities updated above)
-    await prisma.bidder.update({
-      where: { id: bidder.id },
-      data: updateData,
-    });
+    const catKey = getCategoryKey(item.category);
+    const countField = `${catKey}Count`;
+    const utilityField = `${catKey}Utility`;
 
-    // Recalculate total utility based on theme utilities × wildcard multipliers
+    // Reverse bidder counts
+    await query(
+      `UPDATE "Bidder" SET
+        "remainingBudget" = "remainingBudget" + $1,
+        "totalItems" = GREATEST("totalItems" - 1, 0),
+        "${countField}" = GREATEST("${countField}" - 1, 0),
+        "${utilityField}" = GREATEST("${utilityField}" - $2, 0),
+        "updatedAt" = NOW()
+       WHERE id = $3`,
+      [item.soldPrice || 0, item.utility, bidder.id]
+    );
+
+    // Recalculate total utility
     const newTotalUtility = await calculateTotalUtility(bidder.id);
+    await query('UPDATE "Bidder" SET "totalUtility" = $1, "updatedAt" = NOW() WHERE id = $2', [newTotalUtility, bidder.id]);
 
-    // Update with the calculated total utility
-    const updatedBidder = await prisma.bidder.update({
-      where: { id: bidder.id },
-      data: { totalUtility: newTotalUtility },
-    });
-
-    // Check qualification status
+    // Check qualification
+    const updatedBidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidder.id]);
+    const updatedBidder = updatedBidderRes.rows[0];
     const isQualified = checkQualification(updatedBidder);
     if (updatedBidder.isQualified !== isQualified) {
-      await prisma.bidder.update({
-        where: { id: bidder.id },
-        data: { isQualified },
-      });
+      await query('UPDATE "Bidder" SET "isQualified" = $1, "updatedAt" = NOW() WHERE id = $2', [isQualified, bidder.id]);
     }
 
     // Undo the sale
-    await prisma.item.update({
-      where: { id: itemId },
-      data: {
-        soldTo: null,
-        soldPrice: null,
-        status: 'available',
-      },
-    });
+    await query(
+      'UPDATE "Item" SET "soldTo" = NULL, "soldPrice" = NULL, status = $1, "updatedAt" = NOW() WHERE id = $2',
+      ['available', itemId]
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

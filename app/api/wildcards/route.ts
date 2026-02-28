@@ -1,42 +1,36 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { query } from '@/lib/db';
 import { calculateTotalUtility } from '@/lib/wildcard-utils';
 
-const prisma = new PrismaClient();
-
-const CATEGORY_LIMITS = {
-  Hostels: { min: 1, max: 3 },
-  Clubs: { min: 2, max: 4 },
-  Dating: { min: 1, max: 2 },
-  Friends: { min: 2, max: 4 },
+const CATEGORY_LIMITS: Record<string, { min: number; max: number }> = {
+  hostels: { min: 1, max: 3 },
+  clubs: { min: 2, max: 4 },
+  dating: { min: 1, max: 2 },
+  friends: { min: 2, max: 4 },
 };
 
 const TOTAL_ITEMS_LIMIT = { min: 7, max: 10 };
 
-function getCategoryKey(category: string): 'Hostels' | 'Clubs' | 'Dating' | 'Friends' {
-  if (category === 'Combat Roles') return 'Hostels';
-  if (category === 'Strategic Assets & Equipment') return 'Clubs';
-  if (category === 'Mission Environments') return 'Dating';
-  return 'Friends';
+function getCategoryKey(category: string): string {
+  if (category === 'Combat Roles') return 'hostels';
+  if (category === 'Strategic Assets & Equipment') return 'clubs';
+  if (category === 'Mission Environments') return 'dating';
+  return 'friends';
 }
 
 function checkQualification(bidder: any): boolean {
   const hostelsOk =
-    (bidder.hostelsCount >= CATEGORY_LIMITS.Hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.Hostels.max) ||
+    (bidder.hostelsCount >= CATEGORY_LIMITS.hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.hostels.max) ||
     bidder.hostelsMultiplier > 1;
-
   const clubsOk =
-    (bidder.clubsCount >= CATEGORY_LIMITS.Clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.Clubs.max) ||
+    (bidder.clubsCount >= CATEGORY_LIMITS.clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.clubs.max) ||
     bidder.clubsMultiplier > 1;
-
   const datingOk =
-    (bidder.datingCount >= CATEGORY_LIMITS.Dating.min && bidder.datingCount <= CATEGORY_LIMITS.Dating.max) ||
+    (bidder.datingCount >= CATEGORY_LIMITS.dating.min && bidder.datingCount <= CATEGORY_LIMITS.dating.max) ||
     bidder.datingMultiplier > 1;
-
   const friendsOk =
-    (bidder.friendsCount >= CATEGORY_LIMITS.Friends.min && bidder.friendsCount <= CATEGORY_LIMITS.Friends.max) ||
+    (bidder.friendsCount >= CATEGORY_LIMITS.friends.min && bidder.friendsCount <= CATEGORY_LIMITS.friends.max) ||
     bidder.friendsMultiplier > 1;
-
   const totalOk = bidder.totalItems >= TOTAL_ITEMS_LIMIT.min && bidder.totalItems <= TOTAL_ITEMS_LIMIT.max;
 
   return hostelsOk && clubsOk && datingOk && friendsOk && totalOk;
@@ -45,16 +39,13 @@ function checkQualification(bidder: any): boolean {
 // GET all wildcards
 export async function GET() {
   try {
-    const wildcards = await prisma.wildcard.findMany({
-      include: {
-        bidder: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    return NextResponse.json(wildcards);
+    const result = await query(
+      `SELECT w.*, row_to_json(b.*) as bidder
+       FROM "Wildcard" w
+       JOIN "Bidder" b ON w."bidderId" = b.id
+       ORDER BY w."createdAt" DESC`
+    );
+    return NextResponse.json(result.rows);
   } catch (error) {
     console.error('Error fetching wildcards:', error);
     return NextResponse.json({ error: 'Failed to fetch wildcards' }, { status: 500 });
@@ -83,84 +74,67 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get bidder with wildcards
-    const bidder = await prisma.bidder.findUnique({
-      where: { id: bidderId },
-      include: { wildcards: true },
-    });
+    const bidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidderId]);
+    const bidder = bidderRes.rows[0];
 
     if (!bidder) {
       return NextResponse.json({ error: 'Bidder not found' }, { status: 404 });
     }
 
-    // Check budget
     if (bidder.remainingBudget < price) {
       return NextResponse.json({ error: 'Insufficient budget' }, { status: 400 });
     }
 
     // Create the wildcard
-    const wildcard = await prisma.wildcard.create({
-      data: {
-        name,
-        price,
-        bidderId,
-        hostelsMultiplier,
-        clubsMultiplier,
-        datingMultiplier,
-        friendsMultiplier,
-        countsAsTheme,
-      },
-    });
+    await query(
+      `INSERT INTO "Wildcard" (id, name, price, "bidderId", "hostelsMultiplier", "clubsMultiplier", "datingMultiplier", "friendsMultiplier", "countsAsTheme", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+      [name, price, bidderId, hostelsMultiplier, clubsMultiplier, datingMultiplier, friendsMultiplier, countsAsTheme || null]
+    );
 
-    // Multiply the bidder's theme multipliers (multiplicative stacking)
-    const updateData: any = {
-      remainingBudget: bidder.remainingBudget - price,
-      wildcardsCount: bidder.wildcardsCount + 1,
-      hostelsMultiplier: bidder.hostelsMultiplier * hostelsMultiplier,
-      clubsMultiplier: bidder.clubsMultiplier * clubsMultiplier,
-      datingMultiplier: bidder.datingMultiplier * datingMultiplier,
-      friendsMultiplier: bidder.friendsMultiplier * friendsMultiplier,
-    };
+    // Build update for bidder
+    let extraUpdates = '';
+    const params: any[] = [
+      price,
+      hostelsMultiplier,
+      clubsMultiplier,
+      datingMultiplier,
+      friendsMultiplier,
+      bidderId,
+    ];
 
-    // If wildcard counts as a theme for qualification, increment that count
     if (countsAsTheme) {
-      const categoryKey = getCategoryKey(countsAsTheme);
-      updateData.totalItems = bidder.totalItems + 1;
-
-      if (categoryKey === 'Hostels') {
-        updateData.hostelsCount = bidder.hostelsCount + 1;
-      } else if (categoryKey === 'Clubs') {
-        updateData.clubsCount = bidder.clubsCount + 1;
-      } else if (categoryKey === 'Dating') {
-        updateData.datingCount = bidder.datingCount + 1;
-      } else if (categoryKey === 'Friends') {
-        updateData.friendsCount = bidder.friendsCount + 1;
-      }
+      const catKey = getCategoryKey(countsAsTheme);
+      extraUpdates = `, "totalItems" = "totalItems" + 1, "${catKey}Count" = "${catKey}Count" + 1`;
     }
 
-    await prisma.bidder.update({
-      where: { id: bidderId },
-      data: updateData,
-    });
+    await query(
+      `UPDATE "Bidder" SET
+        "remainingBudget" = "remainingBudget" - $1,
+        "wildcardsCount" = "wildcardsCount" + 1,
+        "hostelsMultiplier" = "hostelsMultiplier" * $2,
+        "clubsMultiplier" = "clubsMultiplier" * $3,
+        "datingMultiplier" = "datingMultiplier" * $4,
+        "friendsMultiplier" = "friendsMultiplier" * $5,
+        "updatedAt" = NOW()
+        ${extraUpdates}
+       WHERE id = $6`,
+      params
+    );
 
-    // Recalculate total utility based on all theme utilities × wildcard multipliers
+    // Recalculate total utility
     const newTotalUtility = await calculateTotalUtility(bidderId);
+    await query('UPDATE "Bidder" SET "totalUtility" = $1, "updatedAt" = NOW() WHERE id = $2', [newTotalUtility, bidderId]);
 
-    const updatedBidder = await prisma.bidder.update({
-      where: { id: bidderId },
-      data: { totalUtility: newTotalUtility },
-    });
-
-    // Check qualification status
+    // Check qualification
+    const updatedBidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidderId]);
+    const updatedBidder = updatedBidderRes.rows[0];
     const isQualified = checkQualification(updatedBidder);
     if (updatedBidder.isQualified !== isQualified) {
-      await prisma.bidder.update({
-        where: { id: bidderId },
-        data: { isQualified },
-      });
+      await query('UPDATE "Bidder" SET "isQualified" = $1, "updatedAt" = NOW() WHERE id = $2', [isQualified, bidderId]);
     }
 
-    return NextResponse.json({ success: true, wildcard });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error recording wildcard:', error);
     return NextResponse.json({ error: 'Failed to record wildcard' }, { status: 500 });
@@ -177,70 +151,51 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Wildcard ID is required' }, { status: 400 });
     }
 
-    // Get the wildcard with bidder info
-    const wildcard = await prisma.wildcard.findUnique({
-      where: { id: wildcardId },
-      include: { bidder: true },
-    });
+    const wcRes = await query('SELECT * FROM "Wildcard" WHERE id = $1', [wildcardId]);
+    const wildcard = wcRes.rows[0];
 
     if (!wildcard) {
       return NextResponse.json({ error: 'Wildcard not found' }, { status: 404 });
     }
 
-    const bidder = wildcard.bidder;
+    const bidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [wildcard.bidderId]);
+    const bidder = bidderRes.rows[0];
 
-    // Divide the bidder's theme multipliers to remove this wildcard's effect
-    const updateData: any = {
-      remainingBudget: bidder.remainingBudget + wildcard.price,
-      wildcardsCount: Math.max(0, bidder.wildcardsCount - 1),
-      hostelsMultiplier: bidder.hostelsMultiplier / wildcard.hostelsMultiplier,
-      clubsMultiplier: bidder.clubsMultiplier / wildcard.clubsMultiplier,
-      datingMultiplier: bidder.datingMultiplier / wildcard.datingMultiplier,
-      friendsMultiplier: bidder.friendsMultiplier / wildcard.friendsMultiplier,
-    };
-
-    // If wildcard counted as a theme for qualification, decrement that count
+    // Build update
+    let extraUpdates = '';
     if (wildcard.countsAsTheme) {
-      const categoryKey = getCategoryKey(wildcard.countsAsTheme);
-      updateData.totalItems = Math.max(0, bidder.totalItems - 1);
-
-      if (categoryKey === 'Hostels') {
-        updateData.hostelsCount = Math.max(0, bidder.hostelsCount - 1);
-      } else if (categoryKey === 'Clubs') {
-        updateData.clubsCount = Math.max(0, bidder.clubsCount - 1);
-      } else if (categoryKey === 'Dating') {
-        updateData.datingCount = Math.max(0, bidder.datingCount - 1);
-      } else if (categoryKey === 'Friends') {
-        updateData.friendsCount = Math.max(0, bidder.friendsCount - 1);
-      }
+      const catKey = getCategoryKey(wildcard.countsAsTheme);
+      extraUpdates = `, "totalItems" = GREATEST("totalItems" - 1, 0), "${catKey}Count" = GREATEST("${catKey}Count" - 1, 0)`;
     }
 
     // Delete the wildcard first
-    await prisma.wildcard.delete({
-      where: { id: wildcardId },
-    });
+    await query('DELETE FROM "Wildcard" WHERE id = $1', [wildcardId]);
 
-    // Update bidder counts and multipliers
-    await prisma.bidder.update({
-      where: { id: bidder.id },
-      data: updateData,
-    });
+    // Update bidder
+    await query(
+      `UPDATE "Bidder" SET
+        "remainingBudget" = "remainingBudget" + $1,
+        "wildcardsCount" = GREATEST("wildcardsCount" - 1, 0),
+        "hostelsMultiplier" = "hostelsMultiplier" / $2,
+        "clubsMultiplier" = "clubsMultiplier" / $3,
+        "datingMultiplier" = "datingMultiplier" / $4,
+        "friendsMultiplier" = "friendsMultiplier" / $5,
+        "updatedAt" = NOW()
+        ${extraUpdates}
+       WHERE id = $6`,
+      [wildcard.price, wildcard.hostelsMultiplier, wildcard.clubsMultiplier, wildcard.datingMultiplier, wildcard.friendsMultiplier, bidder.id]
+    );
 
-    // Recalculate total utility based on remaining wildcards
+    // Recalculate total utility
     const newTotalUtility = await calculateTotalUtility(bidder.id);
+    await query('UPDATE "Bidder" SET "totalUtility" = $1, "updatedAt" = NOW() WHERE id = $2', [newTotalUtility, bidder.id]);
 
-    const updatedBidder = await prisma.bidder.update({
-      where: { id: bidder.id },
-      data: { totalUtility: newTotalUtility },
-    });
-
-    // Check qualification status
+    // Check qualification
+    const updatedBidderRes = await query('SELECT * FROM "Bidder" WHERE id = $1', [bidder.id]);
+    const updatedBidder = updatedBidderRes.rows[0];
     const isQualified = checkQualification(updatedBidder);
     if (updatedBidder.isQualified !== isQualified) {
-      await prisma.bidder.update({
-        where: { id: bidder.id },
-        data: { isQualified },
-      });
+      await query('UPDATE "Bidder" SET "isQualified" = $1, "updatedAt" = NOW() WHERE id = $2', [isQualified, bidder.id]);
     }
 
     return NextResponse.json({ success: true });

@@ -1,26 +1,21 @@
-import { PrismaClient } from '@prisma/client';
+import { query } from '@/lib/db';
 
-const prisma = new PrismaClient();
-
-/**
- * Calculate the total utility for a bidder based on their theme utilities and wildcard multipliers
- * Formula: totalUtility = (hostelsUtility × hostelsMultiplier) + (clubsUtility × clubsMultiplier) + ...
- * The multipliers are already stored in the bidder record and represent the product of all wildcard multipliers
- */
 export async function calculateTotalUtility(bidderId: string): Promise<number> {
-  const bidder = await prisma.bidder.findUnique({
-    where: { id: bidderId },
-  });
+  const result = await query(
+    'SELECT "hostelsUtility", "clubsUtility", "datingUtility", "friendsUtility", "hostelsMultiplier", "clubsMultiplier", "datingMultiplier", "friendsMultiplier" FROM "Bidder" WHERE id = $1',
+    [bidderId]
+  );
 
-  if (!bidder) {
+  if (result.rows.length === 0) {
     throw new Error('Bidder not found');
   }
 
+  const b = result.rows[0];
   const totalUtility =
-    bidder.hostelsUtility * bidder.hostelsMultiplier +
-    bidder.clubsUtility * bidder.clubsMultiplier +
-    bidder.datingUtility * bidder.datingMultiplier +
-    bidder.friendsUtility * bidder.friendsMultiplier;
+    b.hostelsUtility * b.hostelsMultiplier +
+    b.clubsUtility * b.clubsMultiplier +
+    b.datingUtility * b.datingMultiplier +
+    b.friendsUtility * b.friendsMultiplier;
 
   return Math.floor(totalUtility);
 }

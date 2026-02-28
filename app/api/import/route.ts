@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { query } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -10,20 +10,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
 
-    // Delete existing items and create new ones
-    await prisma.item.deleteMany();
-    
-    const createdItems = await prisma.item.createMany({
-      data: items.map((item: any) => ({
-        name: item.name,
-        category: item.category,
-        utility: item.utility,
-        basePrice: item.basePrice,
-        status: 'available',
-      })),
-    });
+    // Delete existing items
+    await query('DELETE FROM "Item"');
 
-    return NextResponse.json({ success: true, count: createdItems.count });
+    // Insert new items
+    for (const item of items) {
+      await query(
+        'INSERT INTO "Item" (id, name, category, utility, "basePrice", status, "createdAt", "updatedAt") VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, NOW(), NOW())',
+        [item.name, item.category, item.utility, item.basePrice, 'available']
+      );
+    }
+
+    return NextResponse.json({ success: true, count: items.length });
   } catch (error) {
     console.error('Error importing items:', error);
     return NextResponse.json({ error: 'Failed to import items' }, { status: 500 });

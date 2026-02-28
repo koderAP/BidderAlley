@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { query } from '@/lib/db';
 
 export async function GET() {
   try {
-    const bidders = await prisma.bidder.findMany({
-      include: {
-        items: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
-
-    return NextResponse.json(bidders);
+    const result = await query(
+      'SELECT b.*, COALESCE(json_agg(i.*) FILTER (WHERE i.id IS NOT NULL), \'[]\') as items FROM "Bidder" b LEFT JOIN "Item" i ON i."soldTo" = b.id GROUP BY b.id ORDER BY b.name ASC'
+    );
+    return NextResponse.json(result.rows);
   } catch (error) {
     console.error('Error fetching bidders:', error);
     return NextResponse.json({ error: 'Failed to fetch bidders' }, { status: 500 });
@@ -22,23 +16,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
-    const bidder = await prisma.bidder.create({
-      data: {
-        name: body.name,
-        initialBudget: body.initialBudget,
-        remainingBudget: body.initialBudget, // Start with full budget
-        totalUtility: 0,
-        isQualified: false,
-        hostelsCount: 0,
-        clubsCount: 0,
-        datingCount: 0,
-        friendsCount: 0,
-        totalItems: 0,
-      },
-    });
-
-    return NextResponse.json(bidder);
+    const result = await query(
+      `INSERT INTO "Bidder" (id, name, "initialBudget", "remainingBudget", "totalUtility", "isQualified", "hostelsCount", "clubsCount", "datingCount", "friendsCount", "totalItems", "hostelsUtility", "clubsUtility", "datingUtility", "friendsUtility", "hostelsMultiplier", "clubsMultiplier", "datingMultiplier", "friendsMultiplier", "wildcardsCount", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $2, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, NOW(), NOW()) RETURNING *`,
+      [body.name, body.initialBudget]
+    );
+    return NextResponse.json(result.rows[0]);
   } catch (error) {
     console.error('Error creating bidder:', error);
     return NextResponse.json({ error: 'Failed to create bidder' }, { status: 500 });
@@ -50,12 +33,23 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, ...data } = body;
 
-    const bidder = await prisma.bidder.update({
-      where: { id },
-      data,
-    });
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-    return NextResponse.json(bidder);
+    for (const [key, value] of Object.entries(data)) {
+      setClauses.push(`"${key}" = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+    setClauses.push(`"updatedAt" = NOW()`);
+    values.push(id);
+
+    const result = await query(
+      `UPDATE "Bidder" SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+    return NextResponse.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating bidder:', error);
     return NextResponse.json({ error: 'Failed to update bidder' }, { status: 500 });
@@ -71,33 +65,17 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Bidder ID required' }, { status: 400 });
     }
 
-    // Check if bidder has any purchased items
-    const bidder = await prisma.bidder.findUnique({
-      where: { id },
-      include: { items: true },
-    });
+    // Unsell all items first
+    await query(
+      'UPDATE "Item" SET status = $1, "soldTo" = NULL, "soldPrice" = NULL, "updatedAt" = NOW() WHERE "soldTo" = $2',
+      ['available', id]
+    );
 
-    if (bidder && bidder.items.length > 0) {
-      // Unsell all items first
-      await prisma.item.updateMany({
-        where: { soldTo: id },
-        data: {
-          status: 'available',
-          soldTo: null,
-          soldPrice: null,
-        },
-      });
-    }
-
-    // Delete wildcards first (FK constraint)
-    await prisma.wildcard.deleteMany({
-      where: { bidderId: id },
-    });
+    // Delete wildcards (FK constraint)
+    await query('DELETE FROM "Wildcard" WHERE "bidderId" = $1', [id]);
 
     // Delete the bidder
-    await prisma.bidder.delete({
-      where: { id },
-    });
+    await query('DELETE FROM "Bidder" WHERE id = $1', [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {
