@@ -1,4 +1,4 @@
-export type Category = 'Clubs' | 'Hostels' | 'Dating Preference' | 'Friend Type';
+export type Category = 'Combat Roles' | 'Strategic Assets & Equipment' | 'Mission Environments' | 'Special Operations & Strategic Actions';
 
 export interface Item {
   id: string;

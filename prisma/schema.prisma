@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Item {
@@ -79,7 +80,7 @@ model Wildcard {
   friendsMultiplier Float    @default(1.0)
   
   // Which theme does this wildcard count toward for qualification?
-  countsAsTheme     String?  // "Hostels", "Clubs", "Dating Preference", "Friend Type", or null
+  countsAsTheme     String?
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

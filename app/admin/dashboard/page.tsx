@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Item, Bidder, Category } from '@/types/auction';
 
-const categories: Category[] = ['Clubs', 'Hostels', 'Dating Preference', 'Friend Type'];
+const categories: Category[] = ['Combat Roles', 'Strategic Assets & Equipment', 'Mission Environments', 'Special Operations & Strategic Actions'];
 
 export default function AdminDashboard() {
   const [items, setItems] = useState<Item[]>([]);
@@ -135,19 +135,19 @@ export default function AdminDashboard() {
 
       if (res.ok) {
         await loadData();
-        alert('Item created successfully!');
+        alert('Asset created successfully!');
       } else {
-        alert('Failed to create item');
+        alert('Failed to create asset');
       }
     } catch (error) {
-      console.error('Error creating item:', error);
-      alert('Error creating item');
+      console.error('Error creating asset:', error);
+      alert('Error creating asset');
     }
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-    
+    if (!confirm('Are you sure you want to delete this asset?')) return;
+
     try {
       const res = await fetch(`/api/items?id=${itemId}`, {
         method: 'DELETE',
@@ -156,15 +156,15 @@ export default function AdminDashboard() {
       if (res.ok) {
         await loadData();
       } else {
-        alert('Failed to delete item');
+        alert('Failed to delete asset');
       }
     } catch (error) {
-      console.error('Error deleting item:', error);
-      alert('Error deleting item');
+      console.error('Error deleting asset:', error);
+      alert('Error deleting asset');
     }
   };
 
-  const handleCreateBidder = async (newBidder: Omit<Bidder, 'id' | 'remainingBudget' | 'totalUtility' | 'itemsBought' | 'items'>) => {
+  const handleCreateBidder = async (newBidder: Omit<Bidder, 'id' | 'items' | 'createdAt' | 'updatedAt'>) => {
     try {
       const res = await fetch('/api/bidders', {
         method: 'POST',
@@ -174,19 +174,19 @@ export default function AdminDashboard() {
 
       if (res.ok) {
         await loadData();
-        alert('Bidder created successfully!');
+        alert('Commander created successfully!');
       } else {
-        alert('Failed to create bidder');
+        alert('Failed to create commander');
       }
     } catch (error) {
-      console.error('Error creating bidder:', error);
-      alert('Error creating bidder');
+      console.error('Error creating commander:', error);
+      alert('Error creating commander');
     }
   };
 
   const handleDeleteBidder = async (bidderId: string) => {
-    if (!confirm('Are you sure you want to delete this bidder? This will undo all their purchases.')) return;
-    
+    if (!confirm('Are you sure you want to delete this commander? This will undo all their acquisitions.')) return;
+
     try {
       const res = await fetch(`/api/bidders?id=${bidderId}`, {
         method: 'DELETE',
@@ -195,18 +195,18 @@ export default function AdminDashboard() {
       if (res.ok) {
         await loadData();
       } else {
-        alert('Failed to delete bidder');
+        alert('Failed to delete commander');
       }
     } catch (error) {
-      console.error('Error deleting bidder:', error);
-      alert('Error deleting bidder');
+      console.error('Error deleting commander:', error);
+      alert('Error deleting commander');
     }
   };
 
   const handleImportJSON = async (jsonString: string) => {
     try {
       const imported = JSON.parse(jsonString);
-      
+
       if (imported.items) {
         const res = await fetch('/api/import', {
           method: 'POST',
@@ -216,9 +216,9 @@ export default function AdminDashboard() {
 
         if (res.ok) {
           await loadData();
-          alert('Items imported successfully!');
+          alert('Assets imported successfully!');
         } else {
-          alert('Failed to import items');
+          alert('Failed to import assets');
         }
       }
     } catch (error) {
@@ -231,30 +231,29 @@ export default function AdminDashboard() {
       items,
       bidders,
     };
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `auction-data-${new Date().toISOString()}.json`;
+    a.download = `stratezenith-data-${new Date().toISOString()}.json`;
     a.click();
   };
 
   const handleEndAuction = async () => {
     const confirmed = window.confirm(
-      '⚠️ WARNING: This will reset the entire auction!\n\n' +
-      'All items will be marked as unsold.\n' +
-      'All bidders will be reset to initial budgets.\n' +
-      'All purchase history will be cleared.\n\n' +
+      '⚠️ WARNING: This will reset the entire operation!\n\n' +
+      'All assets will be marked as available.\n' +
+      'All commanders will be reset to initial budgets.\n' +
+      'All acquisition history will be cleared.\n\n' +
       'This action cannot be undone. Are you sure?'
     );
 
     if (!confirmed) return;
 
-    // Double confirmation for safety
     const doubleConfirm = window.confirm(
       '🚨 FINAL CONFIRMATION\n\n' +
-      'Are you ABSOLUTELY SURE you want to end the auction and reset everything?'
+      'Are you ABSOLUTELY SURE you want to reset everything?'
     );
 
     if (!doubleConfirm) return;
@@ -267,59 +266,59 @@ export default function AdminDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        alert('✅ Auction reset successfully! All items unsold and bidders reset to defaults.');
+        alert('✅ Operation reset successfully! All assets available and commanders reset.');
         await loadData();
       } else {
-        alert(data.error || 'Failed to reset auction');
+        alert(data.error || 'Failed to reset operation');
       }
     } catch (error) {
-      console.error('Error resetting auction:', error);
-      alert('Error resetting auction');
+      console.error('Error resetting operation:', error);
+      alert('Error resetting operation');
     }
   };
 
   if (!isAuthenticated || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0d1117]">
+        <div className="text-xl text-green-400 font-mono animate-pulse">⏳ Loading command center...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-[#0d1117]">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div className="bg-[#161b22] rounded-lg border border-[#30363d] p-6 mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage auction items, bidders, and sales</p>
+              <h1 className="text-3xl font-bold text-gray-100 tracking-wide">⚔️ COMMAND CENTER</h1>
+              <p className="text-gray-500 mt-1 font-mono text-sm">Manage tactical assets, commanders, and acquisitions</p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={handleEndAuction}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
-                title="Reset entire auction to default state"
+                className="bg-red-900 text-red-200 px-4 py-2 rounded-lg hover:bg-red-800 transition-colors font-medium border border-red-700 font-mono text-sm"
+                title="Reset entire operation"
               >
-                🔄 End Auction
+                🔄 RESET OPS
               </button>
               <button
                 onClick={handleExportJSON}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-amber-900 text-amber-200 px-4 py-2 rounded-lg hover:bg-amber-800 transition-colors border border-amber-700 font-mono text-sm"
               >
-                Export Data
+                📥 Export
               </button>
               <a
                 href="/"
                 target="_blank"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                className="bg-green-900 text-green-200 px-4 py-2 rounded-lg hover:bg-green-800 transition-colors border border-green-700 font-mono text-sm"
               >
-                View Public
+                👁 Public View
               </a>
               <button
                 onClick={handleLogout}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                className="bg-[#21262d] text-gray-300 px-4 py-2 rounded-lg hover:bg-[#30363d] transition-colors border border-[#30363d] font-mono text-sm"
               >
                 Logout
               </button>
@@ -328,45 +327,41 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-lg mb-8">
-          <div className="flex border-b">
+        <div className="bg-[#161b22] rounded-lg border border-[#30363d] mb-8">
+          <div className="flex border-b border-[#30363d]">
             <button
               onClick={() => setActiveTab('sales')}
-              className={`px-6 py-4 font-medium ${
-                activeTab === 'sales'
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-4 font-medium font-mono text-sm ${activeTab === 'sales'
+                  ? 'border-b-2 border-green-500 text-green-400'
+                  : 'text-gray-500 hover:text-gray-300'
+                }`}
             >
-              Record Sales
+              ⚡ Record Sales
             </button>
             <button
               onClick={() => setActiveTab('items')}
-              className={`px-6 py-4 font-medium ${
-                activeTab === 'items'
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-4 font-medium font-mono text-sm ${activeTab === 'items'
+                  ? 'border-b-2 border-green-500 text-green-400'
+                  : 'text-gray-500 hover:text-gray-300'
+                }`}
             >
-              Manage Items
+              📦 Manage Assets
             </button>
             <button
               onClick={() => setActiveTab('bidders')}
-              className={`px-6 py-4 font-medium ${
-                activeTab === 'bidders'
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-4 font-medium font-mono text-sm ${activeTab === 'bidders'
+                  ? 'border-b-2 border-green-500 text-green-400'
+                  : 'text-gray-500 hover:text-gray-300'
+                }`}
             >
-              Manage Bidders
+              👥 Manage Commanders
             </button>
             <button
               onClick={() => setActiveTab('wildcards')}
-              className={`px-6 py-4 font-medium ${
-                activeTab === 'wildcards'
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-4 font-medium font-mono text-sm ${activeTab === 'wildcards'
+                  ? 'border-b-2 border-green-500 text-green-400'
+                  : 'text-gray-500 hover:text-gray-300'
+                }`}
             >
               🎴 Wildcards
             </button>
@@ -385,8 +380,8 @@ export default function AdminDashboard() {
 }
 
 // Sales Tab Component
-function SalesTab({ items, bidders, onSale, onUnsell }: { 
-  items: Item[]; 
+function SalesTab({ items, bidders, onSale, onUnsell }: {
+  items: Item[];
   bidders: Bidder[];
   onSale: (itemId: string, bidderId: string, soldPrice: number) => void;
   onUnsell: (itemId: string) => void;
@@ -396,8 +391,8 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
   const [soldPrice, setSoldPrice] = useState('');
   const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
 
-  const availableItems = items.filter(item => 
-    item.status === 'available' && 
+  const availableItems = items.filter(item =>
+    item.status === 'available' &&
     (filterCategory === 'all' || item.category === filterCategory)
   );
 
@@ -416,15 +411,15 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
   return (
     <div className="space-y-6">
       {/* Record Sale Form */}
-      <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">Record New Sale</h3>
+      <div className="bg-[#0d1117] p-6 rounded-lg border border-green-900/40">
+        <h3 className="text-xl font-semibold text-green-400 mb-4 font-mono">⚡ RECORD NEW ACQUISITION</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category Filter</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Category Filter</label>
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value as Category | 'all')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200 focus:ring-2 focus:ring-green-600"
             >
               <option value="all">All Categories</option>
               {categories.map(cat => (
@@ -433,7 +428,7 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select Item</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Select Asset</label>
             <select
               value={selectedItem}
               onChange={(e) => {
@@ -441,10 +436,10 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
                 const item = items.find(i => i.id === e.target.value);
                 if (item) setSoldPrice(item.basePrice.toString());
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200 focus:ring-2 focus:ring-green-600"
               required
             >
-              <option value="">Choose item...</option>
+              <option value="">Choose asset...</option>
               {availableItems.map(item => (
                 <option key={item.id} value={item.id}>
                   {item.name} ({item.category}) - ${item.basePrice}M
@@ -453,14 +448,14 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Sold To</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Acquired By</label>
             <select
               value={selectedBidder}
               onChange={(e) => setSelectedBidder(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200 focus:ring-2 focus:ring-green-600"
               required
             >
-              <option value="">Choose bidder...</option>
+              <option value="">Choose commander...</option>
               {bidders.map(bidder => (
                 <option key={bidder.id} value={bidder.id}>
                   {bidder.name} (${bidder.remainingBudget}M remaining)
@@ -469,13 +464,13 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Sold Price (in Million $)</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Price ($M)</label>
             <input
               type="number"
               value={soldPrice}
               onChange={(e) => setSoldPrice(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              placeholder="Enter price in millions"
+              className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200 focus:ring-2 focus:ring-green-600"
+              placeholder="Enter price"
               required
               min="0"
               step="1"
@@ -484,9 +479,9 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
           <div className="md:col-span-4">
             <button
               type="submit"
-              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="w-full bg-green-800 text-green-100 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium border border-green-600 font-mono"
             >
-              Record Sale
+              CONFIRM ACQUISITION
             </button>
           </div>
         </form>
@@ -494,49 +489,37 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
 
       {/* Recently Sold Items */}
       <div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">Recent Sales ({soldItems.length})</h3>
+        <h3 className="text-xl font-semibold text-gray-200 mb-4 font-mono">Recent Acquisitions ({soldItems.length})</h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-[#30363d]">
+            <thead className="bg-[#0d1117]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utility</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base Price ($M)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sold To (Player)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sold Price ($M)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Asset</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Utility</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Base ($M)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Acquired By</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Price ($M)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-[#21262d]">
               {soldItems.slice().reverse().map(item => {
                 const bidder = bidders.find(b => b.id === item.soldTo);
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {item.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.category}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.utility}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${item.basePrice}M
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {bidder?.name || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                      ${item.soldPrice}M
-                    </td>
+                  <tr key={item.id} className="hover:bg-[#1c2128]">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-200">{item.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{item.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{item.utility}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-mono">${item.basePrice}M</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{bidder?.name || 'Unknown'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-400 font-mono">${item.soldPrice}M</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => onUnsell(item.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-400 hover:text-red-300 font-mono"
                       >
-                        Undo Sale
+                        Undo
                       </button>
                     </td>
                   </tr>
@@ -551,7 +534,7 @@ function SalesTab({ items, bidders, onSale, onUnsell }: {
 }
 
 // Items Tab Component
-function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: { 
+function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
   items: Item[];
   onUpdate: (itemId: string, updates: Partial<Item>) => void;
   onCreate: (newItem: Omit<Item, 'id' | 'status' | 'soldTo' | 'soldPrice' | 'createdAt' | 'updatedAt'>) => void;
@@ -565,7 +548,7 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: '',
-    category: 'Clubs' as Category,
+    category: 'Combat Roles' as Category,
     utility: 70,
     basePrice: 500,
   });
@@ -594,7 +577,7 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
     onCreate(createForm);
     setCreateForm({
       name: '',
-      category: 'Clubs',
+      category: 'Combat Roles',
       utility: 70,
       basePrice: 500,
     });
@@ -607,39 +590,39 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
       <div className="flex gap-3">
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          className="bg-green-800 text-green-100 px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-600 font-mono text-sm"
         >
-          {showCreateForm ? 'Hide' : 'Add New Item'}
+          {showCreateForm ? 'Hide' : '+ Add New Asset'}
         </button>
         <button
           onClick={() => setShowImport(!showImport)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+          className="bg-amber-900 text-amber-200 px-4 py-2 rounded-lg hover:bg-amber-800 transition-colors border border-amber-700 font-mono text-sm"
         >
-          {showImport ? 'Hide' : 'Import JSON'}
+          {showImport ? 'Hide' : '📥 Import JSON'}
         </button>
       </div>
 
       {/* Create Form */}
       {showCreateForm && (
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Add New Item</h3>
+        <div className="bg-[#0d1117] p-6 rounded-lg border border-green-900/40">
+          <h3 className="text-xl font-semibold text-green-400 mb-4 font-mono">ADD NEW ASSET</h3>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Name</label>
               <input
                 type="text"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Category</label>
               <select
                 value={createForm.category}
                 onChange={(e) => setCreateForm({ ...createForm, category: e.target.value as Category })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -647,24 +630,23 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Utility</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Utility</label>
               <input
                 type="number"
                 value={createForm.utility}
                 onChange={(e) => setCreateForm({ ...createForm, utility: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200"
                 required
                 min="0"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Base Price (in Million $)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Base Price ($M)</label>
               <input
                 type="number"
                 value={createForm.basePrice}
                 onChange={(e) => setCreateForm({ ...createForm, basePrice: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="e.g., 15 for $15M"
+                className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200"
                 required
                 min="0"
               />
@@ -672,9 +654,9 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
             <div className="md:col-span-4">
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                className="w-full bg-green-800 text-green-100 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium border border-green-600 font-mono"
               >
-                Create Item
+                CREATE ASSET
               </button>
             </div>
           </form>
@@ -683,41 +665,41 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
 
       {/* Import JSON */}
       {showImport && (
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Paste JSON (must have "items" array)
+        <div className="p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
+          <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">
+            Paste JSON (must have &quot;items&quot; array)
           </label>
           <textarea
             value={jsonImport}
             onChange={(e) => setJsonImport(e.target.value)}
-            className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm"
-            placeholder='{"items": [{"name": "Item 1", "category": "Clubs", "utility": 80, "basePrice": 500}]}'
+            className="w-full h-40 px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg font-mono text-sm text-gray-200"
+            placeholder='{"items": [{"name": "Asset 1", "category": "Combat Roles", "utility": 80, "basePrice": 500}]}'
           />
           <button
             onClick={handleImport}
-            className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            className="mt-2 bg-green-800 text-green-100 px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-600 font-mono text-sm"
           >
-            Import Items
+            Import Assets
           </button>
         </div>
       )}
 
       {/* Items Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-[#30363d]">
+          <thead className="bg-[#0d1117]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utility</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base Price ($M)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Category</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Utility</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Base Price ($M)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-[#21262d]">
             {items.map(item => (
-              <tr key={item.id} className="hover:bg-gray-50">
+              <tr key={item.id} className="hover:bg-[#1c2128]">
                 {editingId === item.id ? (
                   <>
                     <td className="px-6 py-4">
@@ -725,14 +707,14 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
                         type="text"
                         value={editForm.name || ''}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        className="w-full px-2 py-1 border rounded"
+                        className="w-full px-2 py-1 bg-[#0d1117] border border-[#30363d] rounded text-gray-200"
                       />
                     </td>
                     <td className="px-6 py-4">
                       <select
                         value={editForm.category || ''}
                         onChange={(e) => setEditForm({ ...editForm, category: e.target.value as Category })}
-                        className="w-full px-2 py-1 border rounded"
+                        className="w-full px-2 py-1 bg-[#0d1117] border border-[#30363d] rounded text-gray-200"
                       >
                         {categories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
@@ -744,7 +726,7 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
                         type="number"
                         value={editForm.utility || 0}
                         onChange={(e) => setEditForm({ ...editForm, utility: parseInt(e.target.value) })}
-                        className="w-full px-2 py-1 border rounded"
+                        className="w-full px-2 py-1 bg-[#0d1117] border border-[#30363d] rounded text-gray-200"
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -752,25 +734,24 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
                         type="number"
                         value={editForm.basePrice || 0}
                         onChange={(e) => setEditForm({ ...editForm, basePrice: parseInt(e.target.value) })}
-                        className="w-full px-2 py-1 border rounded"
+                        className="w-full px-2 py-1 bg-[#0d1117] border border-[#30363d] rounded text-gray-200"
                       />
                     </td>
-                    <td className="px-6 py-4 text-sm">{item.status}</td>
+                    <td className="px-6 py-4 text-sm text-gray-400">{item.status}</td>
                     <td className="px-6 py-4 space-x-2">
-                      <button onClick={saveEdit} className="text-green-600 hover:text-green-900">Save</button>
-                      <button onClick={() => setEditingId(null)} className="text-gray-600 hover:text-gray-900">Cancel</button>
+                      <button onClick={saveEdit} className="text-green-400 hover:text-green-300 font-mono">Save</button>
+                      <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-300 font-mono">Cancel</button>
                     </td>
                   </>
                 ) : (
                   <>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{item.category}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{item.utility}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">${item.basePrice}M</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-200">{item.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-300">{item.category}</td>
+                    <td className="px-6 py-4 text-sm text-gray-300">{item.utility}</td>
+                    <td className="px-6 py-4 text-sm text-gray-300 font-mono">${item.basePrice}M</td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        item.status === 'sold' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${item.status === 'sold' ? 'bg-green-900/50 text-green-300' : 'bg-amber-900/50 text-amber-300'
+                        }`}>
                         {item.status}
                       </span>
                     </td>
@@ -778,14 +759,14 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
                       <div className="flex gap-3">
                         <button
                           onClick={() => startEdit(item)}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium"
+                          className="text-amber-400 hover:text-amber-300 font-medium font-mono text-sm"
                           disabled={item.status === 'sold'}
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => onDelete(item.id)}
-                          className="text-red-600 hover:text-red-900 font-medium"
+                          className="text-red-400 hover:text-red-300 font-medium font-mono text-sm"
                           disabled={item.status === 'sold'}
                         >
                           Delete
@@ -804,7 +785,7 @@ function ItemsTab({ items, onUpdate, onCreate, onDelete, onImport }: {
 }
 
 // Bidders Tab Component
-function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: { 
+function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
   bidders: Bidder[];
   onUpdate: (bidderId: string, updates: Partial<Bidder>) => void;
   onCreate: (newBidder: Omit<Bidder, 'id' | 'items' | 'createdAt' | 'updatedAt'>) => void;
@@ -862,37 +843,35 @@ function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
 
   return (
     <div className="space-y-6">
-      {/* Add New Bidder Button */}
       <button
         onClick={() => setShowCreateForm(!showCreateForm)}
-        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+        className="bg-green-800 text-green-100 px-4 py-2 rounded-lg hover:bg-green-700 transition-colors border border-green-600 font-mono text-sm"
       >
-        {showCreateForm ? 'Hide' : 'Add New Bidder'}
+        {showCreateForm ? 'Hide' : '+ Add New Commander'}
       </button>
 
       {/* Create Form */}
       {showCreateForm && (
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Add New Bidder</h3>
+        <div className="bg-[#0d1117] p-6 rounded-lg border border-green-900/40">
+          <h3 className="text-xl font-semibold text-green-400 mb-4 font-mono">ADD NEW COMMANDER</h3>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Name</label>
               <input
                 type="text"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Initial Budget (in Million $)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2 font-mono">Initial Budget ($M)</label>
               <input
                 type="number"
                 value={createForm.initialBudget}
                 onChange={(e) => setCreateForm({ ...createForm, initialBudget: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="e.g., 200 for $200M"
+                className="w-full px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-gray-200"
                 required
                 min="0"
               />
@@ -900,9 +879,9 @@ function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
             <div className="md:col-span-2">
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                className="w-full bg-green-800 text-green-100 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium border border-green-600 font-mono"
               >
-                Create Bidder
+                CREATE COMMANDER
               </button>
             </div>
           </form>
@@ -911,22 +890,22 @@ function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
 
       {/* Bidders Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-[#30363d]">
+          <thead className="bg-[#0d1117]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player ID & Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Initial Budget ($M)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remaining ($M)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Utility</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items (H/C/D/F)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Commander</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Budget ($M)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Remaining ($M)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Utility</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Assets (CR/SA/ME/SO)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-[#21262d]">
             {bidders.map(bidder => {
               return (
-                <tr key={bidder.id} className="hover:bg-gray-50">
+                <tr key={bidder.id} className="hover:bg-[#1c2128]">
                   {editingId === bidder.id ? (
                     <>
                       <td className="px-6 py-4">
@@ -934,7 +913,7 @@ function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
                           type="text"
                           value={editForm.name || ''}
                           onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                          className="w-full px-2 py-1 border rounded"
+                          className="w-full px-2 py-1 bg-[#0d1117] border border-[#30363d] rounded text-gray-200"
                         />
                       </td>
                       <td className="px-6 py-4">
@@ -942,43 +921,43 @@ function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
                           type="number"
                           value={editForm.initialBudget || 0}
                           onChange={(e) => setEditForm({ ...editForm, initialBudget: parseInt(e.target.value) })}
-                          className="w-full px-2 py-1 border rounded"
+                          className="w-full px-2 py-1 bg-[#0d1117] border border-[#30363d] rounded text-gray-200"
                         />
                       </td>
-                      <td className="px-6 py-4 text-sm">${bidder.remainingBudget}M</td>
-                      <td className="px-6 py-4 text-sm">{bidder.totalUtility}</td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-6 py-4 text-sm text-gray-400 font-mono">${bidder.remainingBudget}M</td>
+                      <td className="px-6 py-4 text-sm text-gray-400">{bidder.totalUtility}</td>
+                      <td className="px-6 py-4 text-sm text-gray-400 font-mono">
                         {bidder.hostelsCount}/{bidder.clubsCount}/{bidder.datingCount}/{bidder.friendsCount} ({bidder.totalItems})
                       </td>
                       <td className="px-6 py-4">
                         {bidder.isQualified && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900/50 text-green-300">
                             ✓ Qualified
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-3">
-                          <button onClick={saveEdit} className="text-green-600 hover:text-green-900 font-medium">Save</button>
-                          <button onClick={() => setEditingId(null)} className="text-gray-600 hover:text-gray-900 font-medium">Cancel</button>
+                          <button onClick={saveEdit} className="text-green-400 hover:text-green-300 font-mono text-sm">Save</button>
+                          <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-300 font-mono text-sm">Cancel</button>
                         </div>
                       </td>
                     </>
                   ) : (
                     <>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-200">
                         {bidder.name}
-                        {bidder.isQualified && <span className="ml-2 text-green-600">✓</span>}
+                        {bidder.isQualified && <span className="ml-2 text-green-400">✓</span>}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">${bidder.initialBudget}M</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">${bidder.remainingBudget}M</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-indigo-600">{bidder.totalUtility}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-300 font-mono">${bidder.initialBudget}M</td>
+                      <td className="px-6 py-4 text-sm text-gray-300 font-mono">${bidder.remainingBudget}M</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-green-400">{bidder.totalUtility}</td>
+                      <td className="px-6 py-4 text-sm text-gray-300 font-mono">
                         {bidder.hostelsCount}/{bidder.clubsCount}/{bidder.datingCount}/{bidder.friendsCount} ({bidder.totalItems})
                       </td>
                       <td className="px-6 py-4">
                         {bidder.isQualified && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900/50 text-green-300">
                             ✓ Qualified
                           </span>
                         )}
@@ -987,15 +966,15 @@ function BiddersTab({ bidders, onUpdate, onCreate, onDelete }: {
                         <div className="flex gap-3">
                           <button
                             onClick={() => startEdit(bidder)}
-                            className="text-indigo-600 hover:text-indigo-900 font-medium"
+                            className="text-amber-400 hover:text-amber-300 font-medium font-mono text-sm"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => onDelete(bidder.id)}
-                            className="text-red-600 hover:text-red-900 font-medium"
+                            className="text-red-400 hover:text-red-300 font-medium font-mono text-sm"
                             disabled={bidder.totalItems > 0}
-                            title={bidder.totalItems > 0 ? 'Cannot delete bidder with purchased items' : 'Delete bidder'}
+                            title={bidder.totalItems > 0 ? 'Cannot delete commander with acquired assets' : 'Delete commander'}
                           >
                             Delete
                           </button>
@@ -1114,37 +1093,31 @@ function WildcardsTab({ bidders, onUpdate }: { bidders: Bidder[]; onUpdate: () =
   return (
     <div className="space-y-6">
       {/* Add Wildcard Form */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg border-2 border-purple-200">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">🎴 Record Wildcard Purchase</h3>
+      <div className="bg-[#0d1117] p-6 rounded-lg border-2 border-amber-900/40">
+        <h3 className="text-xl font-bold text-amber-400 mb-4 font-mono">🎴 RECORD WILDCARD PURCHASE</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {/* Wildcard Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Wildcard Name *
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-1 font-mono">Wildcard Name *</label>
               <input
                 type="text"
                 value={wildcardForm.name}
                 onChange={(e) => setWildcardForm({ ...wildcardForm, name: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-                placeholder="e.g., Super Hostel Boost"
+                className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
+                placeholder="e.g., Tactical Boost"
                 required
               />
             </div>
 
-            {/* Bidder */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bidder *
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-1 font-mono">Commander *</label>
               <select
                 value={wildcardForm.bidderId}
                 onChange={(e) => setWildcardForm({ ...wildcardForm, bidderId: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
                 required
               >
-                <option value="">Select bidder</option>
+                <option value="">Select commander</option>
                 {bidders.map((bidder) => (
                   <option key={bidder.id} value={bidder.id}>
                     {bidder.name} (${bidder.remainingBudget}M)
@@ -1153,95 +1126,83 @@ function WildcardsTab({ bidders, onUpdate }: { bidders: Bidder[]; onUpdate: () =
               </select>
             </div>
 
-            {/* Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price ($M) *
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-1 font-mono">Price ($M) *</label>
               <input
                 type="number"
                 value={wildcardForm.price}
                 onChange={(e) => setWildcardForm({ ...wildcardForm, price: Number(e.target.value) })}
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
                 min="0"
                 required
               />
             </div>
 
-            {/* Counts As Theme (for qualification) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Counts As Theme (Optional)
-                <span className="text-xs text-gray-500 ml-1">(for qualification)</span>
+              <label className="block text-sm font-medium text-gray-400 mb-1 font-mono">
+                Counts As Category
+                <span className="text-xs text-gray-600 ml-1">(for qualification)</span>
               </label>
               <select
                 value={wildcardForm.countsAsTheme}
                 onChange={(e) => setWildcardForm({ ...wildcardForm, countsAsTheme: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
               >
                 <option value="">None (multiplier only)</option>
-                <option value="Hostels">Hostels</option>
-                <option value="Clubs">Clubs</option>
-                <option value="Dating Preference">Dating Preference</option>
-                <option value="Friend Type">Friend Type</option>
+                <option value="Combat Roles">Combat Roles</option>
+                <option value="Strategic Assets & Equipment">Strategic Assets & Equipment</option>
+                <option value="Mission Environments">Mission Environments</option>
+                <option value="Special Operations & Strategic Actions">Special Operations & Strategic Actions</option>
               </select>
             </div>
           </div>
 
           {/* Multipliers */}
-          <div className="border-t pt-4">
-            <h4 className="font-semibold text-gray-900 mb-3">Utility Multipliers</h4>
+          <div className="border-t border-[#30363d] pt-4">
+            <h4 className="font-semibold text-gray-300 mb-3 font-mono">Utility Multipliers</h4>
             <div className="grid grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hostels
-                </label>
+                <label className="block text-sm font-medium text-red-400 mb-1 font-mono">⚔️ Combat</label>
                 <input
                   type="number"
                   step="0.1"
                   value={wildcardForm.hostelsMultiplier}
                   onChange={(e) => setWildcardForm({ ...wildcardForm, hostelsMultiplier: Number(e.target.value) })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
                   min="1"
                 />
-                <p className="text-xs text-gray-500 mt-1">1.0 = no change, 2.0 = double</p>
+                <p className="text-xs text-gray-600 mt-1">1.0 = no change</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Clubs
-                </label>
+                <label className="block text-sm font-medium text-amber-400 mb-1 font-mono">🎯 Assets</label>
                 <input
                   type="number"
                   step="0.1"
                   value={wildcardForm.clubsMultiplier}
                   onChange={(e) => setWildcardForm({ ...wildcardForm, clubsMultiplier: Number(e.target.value) })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
                   min="1"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dating
-                </label>
+                <label className="block text-sm font-medium text-emerald-400 mb-1 font-mono">🌍 Missions</label>
                 <input
                   type="number"
                   step="0.1"
                   value={wildcardForm.datingMultiplier}
                   onChange={(e) => setWildcardForm({ ...wildcardForm, datingMultiplier: Number(e.target.value) })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
                   min="1"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Friends
-                </label>
+                <label className="block text-sm font-medium text-violet-400 mb-1 font-mono">🔥 Spec Ops</label>
                 <input
                   type="number"
                   step="0.1"
                   value={wildcardForm.friendsMultiplier}
                   onChange={(e) => setWildcardForm({ ...wildcardForm, friendsMultiplier: Number(e.target.value) })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-gray-200"
                   min="1"
                 />
               </div>
@@ -1250,55 +1211,55 @@ function WildcardsTab({ bidders, onUpdate }: { bidders: Bidder[]; onUpdate: () =
 
           <button
             type="submit"
-            className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            className="w-full bg-amber-800 text-amber-100 px-6 py-3 rounded-lg hover:bg-amber-700 transition-colors font-medium border border-amber-600 font-mono"
           >
-            Record Wildcard Purchase
+            RECORD WILDCARD PURCHASE
           </button>
         </form>
       </div>
 
       {/* Wildcards List */}
-      <div className="bg-white p-6 rounded-lg border">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Purchased Wildcards</h3>
+      <div className="bg-[#0d1117] p-6 rounded-lg border border-[#30363d]">
+        <h3 className="text-xl font-bold text-gray-200 mb-4 font-mono">Purchased Wildcards</h3>
         {loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-gray-500 font-mono">Loading...</p>
         ) : wildcards.length === 0 ? (
-          <p className="text-gray-500">No wildcards purchased yet</p>
+          <p className="text-gray-500 font-mono">No wildcards purchased yet</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+            <table className="w-full divide-y divide-[#30363d]">
+              <thead className="bg-[#161b22]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wildcard</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bidder</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Multipliers (H/C/D/F)</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Counts As</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Wildcard</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Commander</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Price</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Multipliers (CR/SA/ME/SO)</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Counts As</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase font-mono">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#21262d]">
                 {wildcards.map((wc) => (
-                  <tr key={wc.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">🎴 {wc.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{wc.bidder.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">${wc.price}M</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
+                  <tr key={wc.id} className="hover:bg-[#1c2128]">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-200">🎴 {wc.name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-300">{wc.bidder.name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-300 font-mono">${wc.price}M</td>
+                    <td className="px-4 py-3 text-sm text-gray-300 font-mono">
                       {wc.hostelsMultiplier}x / {wc.clubsMultiplier}x / {wc.datingMultiplier}x / {wc.friendsMultiplier}x
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
+                    <td className="px-4 py-3 text-sm text-gray-300">
                       {wc.countsAsTheme ? (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                        <span className="px-2 py-1 bg-green-900/50 text-green-300 rounded text-xs font-medium">
                           {wc.countsAsTheme}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-600">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleDelete(wc.id)}
-                        className="text-red-600 hover:text-red-900 font-medium text-sm"
+                        className="text-red-400 hover:text-red-300 font-medium text-sm font-mono"
                       >
                         Remove
                       </button>

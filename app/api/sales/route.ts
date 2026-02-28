@@ -5,13 +5,13 @@ import { calculateTotalUtility } from '@/lib/wildcard-utils';
 // Category mapping for purchase limits
 const getCategoryKey = (category: string): keyof typeof CATEGORY_LIMITS => {
   switch (category) {
-    case 'Hostels':
+    case 'Combat Roles':
       return 'Hostels';
-    case 'Clubs':
+    case 'Strategic Assets & Equipment':
       return 'Clubs';
-    case 'Dating Preference':
+    case 'Mission Environments':
       return 'Dating';
-    case 'Friend Type':
+    case 'Special Operations & Strategic Actions':
       return 'Friends';
     default:
       return 'Hostels';
@@ -29,22 +29,19 @@ const TOTAL_ITEMS_LIMIT = { min: 7, max: 10 };
 
 // Check if bidder qualifies
 const checkQualification = (bidder: any): boolean => {
-  // For each theme, check if either:
-  // 1. They have the required items, OR
-  // 2. They have a wildcard multiplier > 1 (automatically qualifies for that theme)
-  const hostelsOk = 
+  const hostelsOk =
     (bidder.hostelsCount >= CATEGORY_LIMITS.Hostels.min && bidder.hostelsCount <= CATEGORY_LIMITS.Hostels.max) ||
     bidder.hostelsMultiplier > 1;
-  
-  const clubsOk = 
+
+  const clubsOk =
     (bidder.clubsCount >= CATEGORY_LIMITS.Clubs.min && bidder.clubsCount <= CATEGORY_LIMITS.Clubs.max) ||
     bidder.clubsMultiplier > 1;
-  
-  const datingOk = 
+
+  const datingOk =
     (bidder.datingCount >= CATEGORY_LIMITS.Dating.min && bidder.datingCount <= CATEGORY_LIMITS.Dating.max) ||
     bidder.datingMultiplier > 1;
-  
-  const friendsOk = 
+
+  const friendsOk =
     (bidder.friendsCount >= CATEGORY_LIMITS.Friends.min && bidder.friendsCount <= CATEGORY_LIMITS.Friends.max) ||
     bidder.friendsMultiplier > 1;
 
@@ -61,7 +58,7 @@ export async function POST(request: Request) {
     // Get the item and bidder with current counts
     const [item, bidder] = await Promise.all([
       prisma.item.findUnique({ where: { id: itemId } }),
-      prisma.bidder.findUnique({ 
+      prisma.bidder.findUnique({
         where: { id: bidderId },
         include: { items: true }
       }),
@@ -91,7 +88,7 @@ export async function POST(request: Request) {
     const categoryKey = getCategoryKey(item.category);
     const countField = `${categoryKey.toLowerCase()}Count` as keyof typeof bidder;
     const currentCount = bidder[countField] as number;
-    
+
     if (currentCount >= CATEGORY_LIMITS[categoryKey].max) {
       return NextResponse.json(
         { error: `Maximum ${CATEGORY_LIMITS[categoryKey].max} items allowed in ${item.category} category` },
@@ -102,7 +99,7 @@ export async function POST(request: Request) {
     // Calculate new values
     const newRemainingBudget = bidder.remainingBudget - soldPrice;
     const newTotalItems = bidder.totalItems + 1;
-    
+
     const updateData: any = {
       remainingBudget: newRemainingBudget,
       totalItems: newTotalItems,
@@ -131,7 +128,7 @@ export async function POST(request: Request) {
 
     // Recalculate total utility based on theme utilities × wildcard multipliers
     const newTotalUtility = await calculateTotalUtility(bidderId);
-    
+
     // Update with the calculated total utility
     const updatedBidder = await prisma.bidder.update({
       where: { id: bidderId },
@@ -218,7 +215,7 @@ export async function DELETE(request: Request) {
 
     // Recalculate total utility based on theme utilities × wildcard multipliers
     const newTotalUtility = await calculateTotalUtility(bidder.id);
-    
+
     // Update with the calculated total utility
     const updatedBidder = await prisma.bidder.update({
       where: { id: bidder.id },
