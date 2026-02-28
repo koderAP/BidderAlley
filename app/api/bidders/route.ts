@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     const bidder = await prisma.bidder.create({
       data: {
         name: body.name,
@@ -88,6 +88,11 @@ export async function DELETE(request: Request) {
         },
       });
     }
+
+    // Delete wildcards first (FK constraint)
+    await prisma.wildcard.deleteMany({
+      where: { bidderId: id },
+    });
 
     // Delete the bidder
     await prisma.bidder.delete({
